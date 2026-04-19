@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "816830288773",
+    "project_id": "alon-finance-final",
+    "storage_bucket": "alon-finance-final.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:816830288773:android:8b2ba40cd60b29eb682aec",
+        "android_client_info": {
+          "package_name": "com.example.family_biz_finance"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBfkyzkcCAGwdasq8ghmvFvZNS9HUBvACU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

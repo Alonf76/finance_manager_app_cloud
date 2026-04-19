@@ -1,90 +1,24 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'firebase_options.dart';
 
-void main() => runApp(const FinanceApp());
-
-enum WorkspaceType { family, business }
-
-// --- מודל הנתונים ---
-class TransactionRecord {
-  final String title;
-  final double totalAmount;
-  final String category;
-  final WorkspaceType workspace;
-  final DateTime date;
-  final int installments;
-
-  TransactionRecord({
-    required this.title,
-    required this.totalAmount,
-    required this.category,
-    required this.workspace,
-    required this.date,
-    this.installments = 1,
-  });
-
-  // המרה ל-JSON לצורך שמירה בזיכרון
-  Map<String, dynamic> toJson() => {
-    'title': title,
-    'totalAmount': totalAmount,
-    'category': category,
-    'workspace': workspace.index,
-    'date': date.toIso8601String(),
-    'installments': installments,
-  };
-
-  // יצירה מתוך JSON בטעינה
-  factory TransactionRecord.fromJson(Map<String, dynamic> json) =>
-      TransactionRecord(
-        title: json['title'],
-        totalAmount: json['totalAmount'],
-        category: json['category'],
-        workspace: WorkspaceType.values[json['workspace']],
-        date: DateTime.parse(json['date']),
-        installments: json['installments'] ?? 1,
-      );
-
-  // חישוב מספר התשלום הנוכחי ביחס למחזור ה-10 לחודש
-  int getCurrentInstallmentNumber(DateTime cycleStart) {
-    if (installments <= 1) return 1;
-    int monthsSinceStart =
-        ((cycleStart.year - date.year) * 12) + cycleStart.month - date.month;
-    if (date.day < 10) monthsSinceStart++;
-    return monthsSinceStart + 1;
-  }
-
-  // חישוב הסכום שיורד במחזור ספציפי
-  double getAmountForMonth(DateTime cycleStart) {
-    if (installments <= 1) {
-      DateTime cycleEnd = DateTime(
-        cycleStart.year,
-        cycleStart.month + 1,
-        cycleStart.day,
-      ).subtract(const Duration(seconds: 1));
-      if (date.isAfter(cycleStart.subtract(const Duration(seconds: 1))) &&
-          date.isBefore(cycleEnd.add(const Duration(seconds: 1)))) {
-        return totalAmount;
-      }
-      return 0;
-    }
-    int instNumber = getCurrentInstallmentNumber(cycleStart);
-    if (instNumber >= 1 && instNumber <= installments)
-      return totalAmount / installments;
-    return 0;
-  }
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  runApp(const FinanceApp());
 }
 
-// --- האפליקציה הראשית ---
 class FinanceApp extends StatelessWidget {
   const FinanceApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      title: 'Family Finance',
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -92,184 +26,652 @@ class FinanceApp extends StatelessWidget {
       ],
       supportedLocales: const [Locale('he', 'IL')],
       locale: const Locale('he', 'IL'),
-      theme: ThemeData(useMaterial3: true),
-      home: const MainWrapper(),
+      theme: ThemeData(
+        useMaterial3: true,
+        colorSchemeSeed: Colors.teal,
+        fontFamily: 'Roboto',
+      ),
+      home: const AuthWrapper(),
     );
   }
 }
 
-// --- המעטפת הלוגית (ניהול מצב) ---
-class MainWrapper extends StatefulWidget {
-  const MainWrapper({super.key});
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
   @override
-  State<MainWrapper> createState() => _MainWrapperState();
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting)
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        if (snapshot.hasData) return const WorkspaceSelector();
+        return const LoginScreen();
+      },
+    );
+  }
 }
 
-class _MainWrapperState extends State<MainWrapper> {
-  WorkspaceType _currentWorkspace = WorkspaceType.family;
-  List<TransactionRecord> _allTransactions = [];
+// --- מסכי כניסה ובחירה ---
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
 
-  // רשימות קטגוריות התחלתיות (יוחלפו במידע מה-SharedPrefs)
-  List<String> _familyCats = [
-    "מזון ומכולת",
-    "רכב",
-    "ביטוחים",
-    "חשמל/מים/גז",
-    "תקשורת",
-    "חינוך ופנאי",
-    "קוסמטיקה",
-  ];
-  List<String> _businessCats = ["שיווק", "ספקים", "משרד"];
+class _LoginScreenState extends State<LoginScreen> {
+  final _email = TextEditingController();
+  final _pass = TextEditingController();
+  bool _isLogin = true;
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              const Icon(
+                Icons.account_balance_wallet,
+                size: 80,
+                color: Colors.teal,
+              ),
+              const SizedBox(height: 20),
+              Text(
+                _isLogin ? "כניסה" : "הרשמה",
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 30),
+              TextField(
+                controller: _email,
+                decoration: const InputDecoration(
+                  labelText: "אימייל",
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 15),
+              TextField(
+                controller: _pass,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: "סיסמה",
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 25),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    try {
+                      if (_isLogin) {
+                        await FirebaseAuth.instance.signInWithEmailAndPassword(
+                          email: _email.text.trim(),
+                          password: _pass.text.trim(),
+                        );
+                      } else {
+                        await FirebaseAuth.instance
+                            .createUserWithEmailAndPassword(
+                              email: _email.text.trim(),
+                              password: _pass.text.trim(),
+                            );
+                      }
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text("שגיאה: ${e.toString()}")),
+                      );
+                    }
+                  },
+                  child: Text(_isLogin ? "כניסה" : "הרשמה"),
+                ),
+              ),
+              TextButton(
+                onPressed: () => setState(() => _isLogin = !_isLogin),
+                child: Text(_isLogin ? "צור חשבון" : "התחבר"),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 
+class WorkspaceSelector extends StatelessWidget {
+  const WorkspaceSelector({super.key});
+  @override
+  Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser!;
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("החשבונות שלי"),
+        actions: [
+          IconButton(
+            onPressed: () => FirebaseAuth.instance.signOut(),
+            icon: const Icon(Icons.logout),
+          ),
+        ],
+      ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('workspaces')
+            .where('members', arrayContains: user.email)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData)
+            return const Center(child: CircularProgressIndicator());
+          final docs = snapshot.data!.docs;
+          return Column(
+            children: [
+              if (docs.isEmpty)
+                const Expanded(
+                  child: Center(child: Text("אין חשבונות פעילים")),
+                ),
+              if (docs.isNotEmpty)
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: docs.length,
+                    itemBuilder: (context, i) => Card(
+                      margin: const EdgeInsets.all(10),
+                      child: ListTile(
+                        leading: const Icon(Icons.group, color: Colors.teal),
+                        title: Text(docs[i]['name']),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (c) => MainFinanceScreen(
+                              wsId: docs[i].id,
+                              wsName: docs[i]['name'],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              Padding(
+                padding: const EdgeInsets.all(30),
+                child: ElevatedButton.icon(
+                  onPressed: () => _showCreate(context),
+                  icon: const Icon(Icons.add),
+                  label: const Text("צור חשבון משפחתי חדש"),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _showCreate(BuildContext context) {
+    final ctrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("שם החשבון"),
+        content: TextField(controller: ctrl),
+        actions: [
+          ElevatedButton(
+            onPressed: () async {
+              await FirebaseFirestore.instance.collection('workspaces').add({
+                'name': ctrl.text,
+                'members': [FirebaseAuth.instance.currentUser!.email],
+                'billingDay': 10,
+                'customCategories': [
+                  'מכולת ומזון',
+                  'דיור',
+                  'רכב',
+                  'בריאות',
+                  'פנאי',
+                  'אחר',
+                ],
+                'targets': {},
+              });
+              Navigator.pop(ctx);
+            },
+            child: const Text("צור"),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// --- מסך ראשי 5.2 ---
+class MainFinanceScreen extends StatefulWidget {
+  final String wsId;
+  final String wsName;
+  const MainFinanceScreen({
+    super.key,
+    required this.wsId,
+    required this.wsName,
+  });
+
+  @override
+  State<MainFinanceScreen> createState() => _MainFinanceScreenState();
+}
+
+class _MainFinanceScreenState extends State<MainFinanceScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
   @override
   void initState() {
     super.initState();
-    _loadData(); // טעינה אוטומטית בפתיחה
+    _tabController = TabController(length: 4, vsync: this);
   }
 
-  // שמירה לדיסק
-  Future<void> _saveData() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String txJson = jsonEncode(
-      _allTransactions.map((tx) => tx.toJson()).toList(),
-    );
-    await prefs.setString('tx_store', txJson);
-    await prefs.setStringList('f_cats_store', _familyCats);
-    await prefs.setStringList('b_cats_store', _businessCats);
-  }
-
-  // טעינה מהדיסק
-  Future<void> _loadData() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? txJson = prefs.getString('tx_store');
-    if (txJson != null) {
-      final List<dynamic> decoded = jsonDecode(txJson);
-      setState(() {
-        _allTransactions = decoded
-            .map((item) => TransactionRecord.fromJson(item))
-            .toList();
-      });
+  dynamic getSafeField(
+    DocumentSnapshot doc,
+    String field,
+    dynamic defaultValue,
+  ) {
+    try {
+      final data = doc.data() as Map<String, dynamic>?;
+      if (data == null || !data.containsKey(field)) return defaultValue;
+      return data[field];
+    } catch (e) {
+      return defaultValue;
     }
-    final List<String>? fCats = prefs.getStringList('f_cats_store');
-    final List<String>? bCats = prefs.getStringList('b_cats_store');
-    if (fCats != null) setState(() => _familyCats = fCats);
-    if (bCats != null) setState(() => _businessCats = bCats);
-  }
-
-  DateTime _getStartOfCurrentCycle() {
-    DateTime now = DateTime.now();
-    return now.day >= 10
-        ? DateTime(now.year, now.month, 10)
-        : DateTime(now.year, now.month - 1, 10);
   }
 
   @override
   Widget build(BuildContext context) {
-    final startOfCycle = _getStartOfCurrentCycle();
-    final isFamily = _currentWorkspace == WorkspaceType.family;
-    final primaryColor = isFamily ? Colors.teal : Colors.indigo.shade900;
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('workspaces')
+          .doc(widget.wsId)
+          .snapshots(),
+      builder: (context, wsSnap) {
+        if (!wsSnap.hasData)
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
 
-    double totalSpent = 0;
-    List<Map<String, dynamic>> displayList = [];
+        const defaultCats = [
+          'מכולת ומזון',
+          'דיור',
+          'רכב',
+          'בריאות',
+          'פנאי',
+          'אחר',
+        ];
 
-    for (var tx in _allTransactions.where(
-      (t) => t.workspace == _currentWorkspace,
-    )) {
-      double amountThisMonth = tx.getAmountForMonth(startOfCycle);
-      if (amountThisMonth > 0) {
-        totalSpent += amountThisMonth;
-        displayList.add({
-          'tx': tx,
-          'amount': amountThisMonth,
-          'instIdx': tx.getCurrentInstallmentNumber(startOfCycle),
-        });
-      }
+        int billingDay = getSafeField(wsSnap.data!, 'billingDay', 10);
+        List<String> cats = List<String>.from(
+          getSafeField(wsSnap.data!, 'customCategories', []),
+        );
+        if (cats.isEmpty) {
+          cats = List<String>.from(defaultCats);
+        } else {
+          // Ensure the initial category set always exists in UI (incl. 'אחר').
+          for (final c in defaultCats) {
+            if (!cats.contains(c)) cats.add(c);
+          }
+        }
+
+        Map<String, dynamic> targets = {};
+        try {
+          var raw = wsSnap.data!.get('targets');
+          if (raw is Map) targets = Map<String, dynamic>.from(raw);
+        } catch (e) {}
+
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(widget.wsName),
+            backgroundColor: Colors.teal,
+            foregroundColor: Colors.white,
+            bottom: TabBar(
+              controller: _tabController,
+              isScrollable: true,
+              tabs: const [
+                Tab(text: "הוצאות"),
+                Tab(text: "הכנסות"),
+                Tab(text: "תשלומים"),
+                Tab(text: "יעדים"),
+              ],
+            ),
+          ),
+          body: StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('workspaces')
+                .doc(widget.wsId)
+                .collection('transactions')
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData)
+                return const Center(child: CircularProgressIndicator());
+
+              DateTime now = DateTime.now();
+              DateTime cycleStart = now.day >= billingDay
+                  ? DateTime(now.year, now.month, billingDay)
+                  : DateTime(now.year, now.month - 1, billingDay);
+              DateTime cycleEnd = DateTime(
+                cycleStart.year,
+                cycleStart.month + 1,
+                billingDay,
+              );
+
+              final allDocs = snapshot.data!.docs;
+              final currentDocs = allDocs.where((d) {
+                DateTime dDate = (d['date'] as Timestamp).toDate();
+                return dDate.isAfter(
+                      cycleStart.subtract(const Duration(seconds: 1)),
+                    ) &&
+                    dDate.isBefore(cycleEnd);
+              }).toList();
+
+              double totalExp = 0, totalInc = 0;
+              Map<String, List<DocumentSnapshot>> expByCat = {};
+              List<DocumentSnapshot> incDocs = [];
+
+              for (var d in currentDocs) {
+                double a = (d['amount'] ?? 0).toDouble();
+                if (getSafeField(d, 'isExpense', true)) {
+                  totalExp += a;
+                  String c = getSafeField(d, 'category', 'אחר');
+                  expByCat.putIfAbsent(c, () => []).add(d);
+                } else {
+                  totalInc += a;
+                  incDocs.add(d);
+                }
+              }
+
+              return TabBarView(
+                controller: _tabController,
+                children: [
+                  // 1. הוצאות עם סנכרון יעדים חי
+                  Column(
+                    children: [
+                      _buildBalanceHeader(
+                        totalInc,
+                        totalExp,
+                        cycleStart,
+                        cycleEnd,
+                      ),
+                      Expanded(
+                        child: ListView(
+                          children: cats.map((cat) {
+                            final catDocs = expByCat[cat] ?? <DocumentSnapshot>[];
+                            final catTarget = (targets[cat] ?? 0).toDouble();
+                            final catSpent = catDocs.fold<double>(
+                              0.0,
+                              (sum, doc) =>
+                                  sum + ((doc['amount'] ?? 0) as num).toDouble(),
+                            );
+                            final remaining = catTarget - catSpent;
+                            final labelColor =
+                                remaining >= 0 ? Colors.teal : Colors.red;
+                            final statusText = remaining >= 0
+                                ? "נשאר: ₪${remaining.toStringAsFixed(0)}"
+                                : "חריגה: ₪${remaining.abs().toStringAsFixed(0)}";
+
+                            return Column(
+                              key: ValueKey(cat + catTarget.toString()),
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 8,
+                                  ),
+                                  color: Colors.teal.withOpacity(0.05),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        '$cat ($statusText)',
+                                        style: TextStyle(
+                                          color: labelColor,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                        children: [
+                                          Text(
+                                            "₪${catSpent.toStringAsFixed(0)} / ₪${catTarget.toStringAsFixed(0)}",
+                                            style: TextStyle(
+                                              color: labelColor,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                ...catDocs.map((d) => _buildTxTile(d)),
+                              ],
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ],
+                  ),
+                  // 2. הכנסות
+                  ListView(
+                    children: incDocs.map((d) => _buildTxTile(d)).toList(),
+                  ),
+                  // 3. תשלומים
+                  _buildInstallmentsTab(allDocs),
+                  // 4. יעדים - מתעדכן אוטומטית מקטגוריות
+                  _buildTargetsTab(targets, cats),
+                ],
+              );
+            },
+          ),
+          floatingActionButton: FloatingActionButton(
+            onPressed: () => _showAdd(context, cats),
+            child: const Icon(Icons.add),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildTargetsTab(Map<String, dynamic> targets, List<String> cats) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: cats.map((cat) {
+        final ctrl = TextEditingController(
+          text: (targets[cat] ?? "").toString(),
+        );
+        return ListTile(
+          key: ValueKey("target_$cat"),
+          title: Text(cat),
+          trailing: SizedBox(
+            width: 100,
+            child: TextField(
+              controller: ctrl,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(hintText: "0", prefixText: "₪"),
+              onChanged: (val) {
+                FirebaseFirestore.instance
+                    .collection('workspaces')
+                    .doc(widget.wsId)
+                    .update({'targets.$cat': double.tryParse(val) ?? 0});
+              },
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildInstallmentsTab(List<DocumentSnapshot> allDocs) {
+    Map<String, List<DocumentSnapshot>> groups = {};
+    for (var d in allDocs) {
+      String? gId = getSafeField(d, 'groupId', null);
+      if (gId != null) groups.putIfAbsent(gId, () => []).add(d);
     }
+    return ListView(
+      children: groups.keys.map((gId) {
+        var group = groups[gId]!;
+        group.sort(
+          (a, b) => (a['date'] as Timestamp).compareTo(b['date'] as Timestamp),
+        );
+        int total = group.length;
+        int current = group
+            .where(
+              (d) => (d['date'] as Timestamp).toDate().isBefore(DateTime.now()),
+            )
+            .length;
+        return Card(
+          margin: const EdgeInsets.all(10),
+          child: ListTile(
+            title: Text(group.first['title'].toString().split('(')[0]),
+            subtitle: Text("תשלום $current מתוך $total"),
+            trailing: IconButton(
+              icon: const Icon(Icons.delete_sweep, color: Colors.red),
+              onPressed: () => _deleteSeries(group),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
 
-    return Theme(
-      data: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: primaryColor,
-          primary: primaryColor,
-        ),
-      ),
-      child: HomeScreen(
-        currentWorkspace: _currentWorkspace,
-        familyCats: _familyCats,
-        businessCats: _businessCats,
-        onWorkspaceChanged: (v) => setState(
-          () => _currentWorkspace = v
-              ? WorkspaceType.business
-              : WorkspaceType.family,
-        ),
-        displayList: displayList,
-        onAddTransaction: (tx) {
-          setState(() => _allTransactions.add(tx));
-          _saveData();
-        },
-        onAddCategory: (newCat) {
-          setState(() {
-            if (isFamily) {
-              if (!_familyCats.contains(newCat)) _familyCats.add(newCat);
-            } else {
-              if (!_businessCats.contains(newCat)) _businessCats.add(newCat);
-            }
-          });
-          _saveData();
-        },
-        totalSpent: totalSpent,
-        cycleName: DateFormat('MMMM yyyy', 'he_IL').format(startOfCycle),
+  void _deleteSeries(List<DocumentSnapshot> group) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("מחיקת סדרה"),
+        content: const Text("האם למחוק את כל התשלומים?"),
+        actions: [
+          ElevatedButton(
+            onPressed: () async {
+              for (var d in group) await d.reference.delete();
+              Navigator.pop(ctx);
+            },
+            child: const Text("מחק הכל"),
+          ),
+        ],
       ),
     );
   }
-}
 
-// --- ממשק המשתמש ---
-class HomeScreen extends StatelessWidget {
-  final WorkspaceType currentWorkspace;
-  final List<String> familyCats;
-  final List<String> businessCats;
-  final Function(bool) onWorkspaceChanged;
-  final List<Map<String, dynamic>> displayList;
-  final Function(TransactionRecord) onAddTransaction;
-  final Function(String) onAddCategory;
-  final double totalSpent;
-  final String cycleName;
+  Widget _buildTxTile(DocumentSnapshot d) {
+    bool isExp = getSafeField(d, 'isExpense', true);
+    return ListTile(
+      leading: Icon(
+        isExp ? Icons.remove_circle : Icons.add_circle,
+        color: isExp ? Colors.red : Colors.green,
+      ),
+      title: Text(d['title']),
+      trailing: Text(
+        "₪${d['amount'].toStringAsFixed(0)}",
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: isExp ? Colors.red : Colors.green,
+        ),
+      ),
+      onLongPress: () => _editSingle(d),
+    );
+  }
 
-  const HomeScreen({
-    super.key,
-    required this.currentWorkspace,
-    required this.familyCats,
-    required this.businessCats,
-    required this.onWorkspaceChanged,
-    required this.displayList,
-    required this.onAddTransaction,
-    required this.onAddCategory,
-    required this.totalSpent,
-    required this.cycleName,
-  });
+  void _editSingle(DocumentSnapshot doc) {
+    final title = TextEditingController(text: doc['title']);
+    final amt = TextEditingController(text: doc['amount'].toString());
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("עריכה"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: title),
+            TextField(controller: amt, keyboardType: TextInputType.number),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => doc.reference
+                .update({'title': title.text, 'amount': double.parse(amt.text)})
+                .then((_) => Navigator.pop(ctx)),
+            child: const Text("עדכן"),
+          ),
+        ],
+      ),
+    );
+  }
 
-  void _showAddSheet(BuildContext context) {
-    final amountCtrl = TextEditingController();
-    final titleCtrl = TextEditingController();
-    final instCtrl = TextEditingController(text: "1");
-    final customCatCtrl = TextEditingController();
-    String? selectedCat;
-    bool isCustomCat = false;
+  Widget _buildBalanceHeader(
+    double inc,
+    double exp,
+    DateTime start,
+    DateTime end,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      color: Colors.teal.shade50,
+      child: Column(
+        children: [
+          Text(
+            "סבב: ${DateFormat('dd/MM').format(start)} - ${DateFormat('dd/MM').format(end)}",
+            style: const TextStyle(fontSize: 12),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "הכנסות: ₪${inc.toStringAsFixed(0)}",
+                style: const TextStyle(
+                  color: Colors.green,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                "הוצאות: ₪${exp.toStringAsFixed(0)}",
+                style: const TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          LinearProgressIndicator(
+            value: (inc + exp) == 0 ? 0.5 : inc / (inc + exp),
+            minHeight: 6,
+            color: Colors.green,
+            backgroundColor: Colors.red.shade200,
+          ),
+          const SizedBox(height: 5),
+          Text(
+            "יתרה: ₪${(inc - exp).toStringAsFixed(0)}",
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    );
+  }
 
-    final List<String> currentCats = [
-      ...(currentWorkspace == WorkspaceType.family ? familyCats : businessCats),
-      "אחר...",
-    ];
+  void _showAdd(BuildContext context, List<String> cats) {
+    final List<String> workingCats = List<String>.from(cats);
+    final title = TextEditingController();
+    final amt = TextEditingController();
+    final inst = TextEditingController(text: "1");
+    final newCatCtrl = TextEditingController();
+    String cat = workingCats.contains("מכולת ומזון")
+        ? "מכולת ומזון"
+        : workingCats.first;
+    bool isExp = true;
+    bool isAddingNewCat = false;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-      ),
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setModalState) => Padding(
+        builder: (ctx, setS) => Padding(
           padding: EdgeInsets.only(
             bottom: MediaQuery.of(ctx).viewInsets.bottom,
             left: 20,
@@ -279,208 +681,137 @@ class HomeScreen extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                "הוצאה חדשה",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text("הכנסה"),
+                  Switch(
+                    value: isExp,
+                    onChanged: (v) => setS(() => isExp = v),
+                    activeColor: Colors.red,
+                    inactiveThumbColor: Colors.green,
+                  ),
+                  const Text("הוצאה"),
+                ],
               ),
-              const SizedBox(height: 15),
               TextField(
-                controller: amountCtrl,
-                decoration: const InputDecoration(
-                  labelText: "סכום כולל",
-                  prefixText: "₪ ",
-                  border: OutlineInputBorder(),
-                ),
+                controller: title,
+                decoration: const InputDecoration(labelText: "תיאור"),
+              ),
+              TextField(
+                controller: amt,
+                decoration: const InputDecoration(labelText: "סכום כולל"),
                 keyboardType: TextInputType.number,
               ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: titleCtrl,
-                decoration: const InputDecoration(
-                  labelText: "תיאור (למשל: מקרר)",
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 10),
-              DropdownButtonFormField<String>(
-                items: currentCats
-                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                    .toList(),
-                onChanged: (v) => setModalState(() {
-                  selectedCat = v;
-                  isCustomCat = (v == "אחר...");
-                }),
-                decoration: const InputDecoration(
-                  labelText: "קטגוריה",
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              if (isCustomCat) ...[
-                const SizedBox(height: 10),
+              if (isExp)
                 TextField(
-                  controller: customCatCtrl,
-                  decoration: const InputDecoration(
+                  controller: inst,
+                  decoration: const InputDecoration(labelText: "תשלומים"),
+                  keyboardType: TextInputType.number,
+                ),
+              const SizedBox(height: 10),
+              if (!isAddingNewCat)
+                DropdownButtonFormField<String>(
+                  value: cat,
+                  items: workingCats
+                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                      .toList(),
+                  onChanged: (v) {
+                    if (v == "אחר")
+                      setS(() => isAddingNewCat = true);
+                    else
+                      setS(() => cat = v!);
+                  },
+                  decoration: const InputDecoration(labelText: "קטגוריה"),
+                )
+              else
+                TextField(
+                  controller: newCatCtrl,
+                  decoration: InputDecoration(
                     labelText: "שם קטגוריה חדשה",
-                    border: OutlineInputBorder(),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.check),
+                      onPressed: () async {
+                        final trimmed = newCatCtrl.text.trim();
+                        if (trimmed.isEmpty || trimmed == "אחר") return;
+
+                        // Optimistic UI update so the new category appears immediately.
+                        setS(() {
+                          if (!workingCats.contains(trimmed)) {
+                            final otherIndex = workingCats.indexOf('אחר');
+                            if (otherIndex >= 0) {
+                              workingCats.insert(otherIndex, trimmed);
+                            } else {
+                              workingCats.add(trimmed);
+                            }
+                          }
+                          cat = trimmed;
+                          isAddingNewCat = false;
+                        });
+
+                        try {
+                          await FirebaseFirestore.instance
+                              .collection('workspaces')
+                              .doc(widget.wsId)
+                              .update({
+                            'customCategories':
+                                FieldValue.arrayUnion([trimmed]),
+                            // Ensure the Targets tab immediately has a row to edit.
+                            'targets.$trimmed': 0,
+                          });
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content:
+                                  Text('שגיאה בשמירת קטגוריה: ${e.toString()}'),
+                            ),
+                          );
+                        }
+
+                        newCatCtrl.clear();
+                      },
+                    ),
                   ),
                 ),
-              ],
-              const SizedBox(height: 10),
-              TextField(
-                controller: instCtrl,
-                decoration: const InputDecoration(
-                  labelText: "מספר תשלומים",
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.number,
-              ),
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: currentWorkspace == WorkspaceType.family
-                        ? Colors.teal
-                        : Colors.indigo.shade900,
+                    backgroundColor: isExp ? Colors.red : Colors.green,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 15),
                   ),
-                  onPressed: () {
-                    if (amountCtrl.text.isEmpty || selectedCat == null) return;
-                    String finalCat = isCustomCat
-                        ? customCatCtrl.text
-                        : selectedCat!;
-                    if (isCustomCat) onAddCategory(finalCat);
-
-                    onAddTransaction(
-                      TransactionRecord(
-                        title: titleCtrl.text,
-                        totalAmount: double.parse(amountCtrl.text),
-                        category: finalCat,
-                        workspace: currentWorkspace,
-                        date: DateTime.now(),
-                        installments: int.tryParse(instCtrl.text) ?? 1,
-                      ),
-                    );
+                  onPressed: () async {
+                    int count = int.tryParse(inst.text) ?? 1;
+                    double total = double.tryParse(amt.text) ?? 0;
+                    String gId = DateTime.now().millisecondsSinceEpoch
+                        .toString();
+                    for (int i = 0; i < count; i++) {
+                      DateTime d = DateTime.now();
+                      await FirebaseFirestore.instance
+                          .collection('workspaces')
+                          .doc(widget.wsId)
+                          .collection('transactions')
+                          .add({
+                            'title': count > 1
+                                ? "${title.text} (${i + 1}/$count)"
+                                : title.text,
+                            'amount': total / count,
+                            'isExpense': isExp,
+                            'category': cat,
+                            'date': DateTime(d.year, d.month + i, d.day),
+                            'groupId': gId,
+                          });
+                    }
                     Navigator.pop(ctx);
                   },
-                  child: const Text("שמור תנועה"),
+                  child: const Text("שמור"),
                 ),
               ),
               const SizedBox(height: 20),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isFamily = currentWorkspace == WorkspaceType.family;
-    final color = isFamily ? Colors.teal : Colors.indigo.shade900;
-
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: color,
-        foregroundColor: Colors.white,
-        title: Text(isFamily ? 'כלכלת משפחה' : 'ניהול עסק'),
-        actions: [
-          const Text("עסק", style: TextStyle(fontSize: 12)),
-          Switch(
-            value: isFamily,
-            onChanged: (v) => onWorkspaceChanged(!v),
-            activeColor: Colors.white,
-          ),
-          const Text("משפחה", style: TextStyle(fontSize: 12)),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: Column(
-        children: [
-          Container(
-            width: double.infinity,
-            margin: const EdgeInsets.all(16),
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: color.withOpacity(0.2)),
-            ),
-            child: Column(
-              children: [
-                Text(
-                  "סיכום $cycleName",
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  "₪${totalSpent.toStringAsFixed(2)}",
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 36,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  "(מחזור ה-10 לחודש)",
-                  style: TextStyle(color: color.withOpacity(0.5), fontSize: 11),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: displayList.isEmpty
-                ? const Center(
-                    child: Text(
-                      "אין תנועות במחזור זה",
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  )
-                : ListView.builder(
-                    itemCount: displayList.length,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemBuilder: (ctx, i) {
-                      final tx = displayList[i]['tx'] as TransactionRecord;
-                      final amount = displayList[i]['amount'] as double;
-                      final instIdx = displayList[i]['instIdx'] as int;
-                      return Card(
-                        elevation: 0,
-                        color: Colors.grey[100],
-                        margin: const EdgeInsets.only(bottom: 8),
-                        child: ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor: color.withOpacity(0.1),
-                            child: Icon(Icons.payment, color: color, size: 20),
-                          ),
-                          title: Text(
-                            tx.title.isEmpty ? tx.category : tx.title,
-                          ),
-                          subtitle: Text(
-                            "${tx.category} ${tx.installments > 1 ? '($instIdx/${tx.installments})' : ''}",
-                          ),
-                          trailing: Text(
-                            "₪${amount.toStringAsFixed(2)}",
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: color,
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddSheet(context),
-        backgroundColor: color,
-        child: const Icon(Icons.add, color: Colors.white, size: 30),
       ),
     );
   }
