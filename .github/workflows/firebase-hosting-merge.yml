@@ -11,10 +11,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: flutter build web --release
+      
+      # השלב החסר: התקנת Flutter על השרת
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.22.0' # וודא שזו הגרסה שאתה משתמש בה
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Web
+        run: flutter build web --release
+
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ALON_FINANCE_FINAL }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FAMILY_BIZ_FINANCE }}
+          projectId: family-biz-finance # וודא שזה ה-ID המדויק של הפרויקט שלך
           channelId: live
-          projectId: alon-finance-final
