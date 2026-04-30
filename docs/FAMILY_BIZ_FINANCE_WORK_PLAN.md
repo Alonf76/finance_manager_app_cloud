@@ -40,14 +40,14 @@ If any link in this chain slips, stop adding features and fix the foundation.
 
 **Milestone M1 — Household workspace + roles**
 
-- [ ] Household creation, invites, membership.
-- [ ] Roles: Admin / Editor / Viewer (adjust names to your product).
-- [ ] Profile: language (EN/HE), timezone, default currency.
+- [x] Household creation, invites, membership.
+- [x] Roles: Admin / Editor / Viewer (adjust names to your product).
+- [x] Profile: language (EN/HE), timezone, default currency.
 
 **Milestone M2 — Design system + RTL/i18n baseline**
 
-- [ ] Externalize strings; Hebrew copy; RTL layout (nav, forms, lists).
-- [ ] Locale-aware dates, numbers, currency; smoke tests in both languages.
+- [x] Externalize strings; Hebrew copy; RTL layout (nav, forms, lists).
+- [x] Locale-aware dates, numbers, currency; smoke tests in both languages.
 
 **Gate:** No new feature screens ship without passing EN + HE RTL review.
 
