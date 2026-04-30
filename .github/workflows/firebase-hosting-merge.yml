@@ -15,7 +15,7 @@ jobs:
       # השלב החסר: התקנת Flutter על השרת
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.0' # וודא שזו הגרסה שאתה משתמש בה
+          flutter-version: '3.24.3' # וודא שזו הגרסה שאתה משתמש בה
           channel: 'stable'
           cache: true
 
