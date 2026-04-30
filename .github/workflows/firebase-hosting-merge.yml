@@ -28,6 +28,7 @@ jobs:
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FAMILY_BIZ_FINANCE }}
-          projectId: family-biz-finance # וודא שזה ה-ID המדויק של הפרויקט שלך
+          # העתק והדבק את השם המדויק שמצאת ב-GitHub
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ALON_FINANCE_FINAL }}
+          projectId: family-biz-finance
           channelId: live
