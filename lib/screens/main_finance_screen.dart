@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:family_biz_finance/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../app_formatters.dart';
 import '../default_categories.dart';
@@ -34,6 +35,16 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+
+    // Update Browser Tab Title with version info
+    PackageInfo.fromPlatform().then((info) {
+      SystemChrome.setApplicationSwitcherDescription(
+        ApplicationSwitcherDescription(
+          label: 'Family Biz Finance v${info.version}+${info.buildNumber}',
+          primaryColor: Colors.teal.value,
+        ),
+      );
+    });
   }
 
   @override
@@ -153,7 +164,18 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
           builder: (context, wsSnap) {
             if (!wsSnap.hasData) {
               return const Scaffold(
-                  body: Center(child: CircularProgressIndicator()));
+                body: Stack(
+                  children: [
+                    Center(child: CircularProgressIndicator()),
+                    Positioned(
+                      bottom: 16,
+                      left: 0,
+                      right: 0,
+                      child: Center(child: AppVersionDisplay()),
+                    ),
+                  ],
+                ),
+              );
             }
 
             final wsData = wsSnap.data!.data() ?? const <String, dynamic>{};
@@ -183,6 +205,10 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
                 backgroundColor: Colors.teal,
                 foregroundColor: Colors.white,
                 actions: [
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Center(child: AppVersionDisplay()),
+                  ),
                   if (role == WorkspaceRole.admin)
                     IconButton(
                       tooltip: l10n.workspaceSettings,
@@ -370,7 +396,7 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
                                             ),
                                           ),
                                           ...catDocs.map((d) => _buildTxTile(
-                                              d, role, l10n, money)),
+                                              d, role, l10n, money, cats)),
                                         ],
                                       );
                                     }).toList(),
@@ -380,8 +406,8 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
                             ),
                             ListView(
                                 children: incDocs
-                                    .map((d) =>
-                                        _buildTxTile(d, role, l10n, money))
+                                    .map((d) => _buildTxTile(
+                                        d, role, l10n, money, cats))
                                     .toList()),
                             _buildInstallmentsTab(allDocs, role, l10n),
                             _buildTargetsTab(
@@ -513,6 +539,7 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
     WorkspaceRole role,
     AppLocalizations l10n,
     NumberFormat money,
+    List<String> cats,
   ) {
     final isExp = getSafeField(d, 'isExpense', true) as bool;
     return ListTile(
@@ -535,7 +562,7 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
             IconButton(
               tooltip: l10n.edit,
               icon: const Icon(Icons.edit),
-              onPressed: () => _editSingle(d, l10n),
+              onPressed: () => _editSingle(d, cats, l10n),
             ),
             IconButton(
               tooltip: l10n.delete,
@@ -548,30 +575,164 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
     );
   }
 
-  void _editSingle(
-      DocumentSnapshot<Map<String, dynamic>> doc, AppLocalizations l10n) {
-    final title = TextEditingController(text: '${doc['title']}');
-    final amt = TextEditingController(text: '${doc['amount']}');
-    showDialog<void>(
+  void _editSingle(DocumentSnapshot<Map<String, dynamic>> doc,
+      List<String> cats, AppLocalizations l10n) {
+    final data = doc.data() as Map<String, dynamic>;
+    final workingCats = List<String>.from(cats);
+    final titleCtrl = TextEditingController(text: data['title']?.toString());
+    final amtCtrl = TextEditingController(text: data['amount']?.toString());
+    final instCtrl = TextEditingController(text: '1');
+    final newCatCtrl = TextEditingController();
+
+    var cat = data['category']?.toString() ?? workingCats.first;
+    var isExp = data['isExpense'] as bool? ?? true;
+    var isAddingNewCat = false;
+
+    showModalBottomSheet<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.edit),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: title),
-            TextField(controller: amt, keyboardType: TextInputType.number),
-          ],
-        ),
-        actions: [
-          ElevatedButton(
-            onPressed: () => doc.reference.update({
-              'title': title.text,
-              'amount': double.parse(amt.text)
-            }).then((_) => Navigator.pop(ctx)),
-            child: Text(l10n.update),
+      isScrollControlled: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+            left: 20,
+            right: 20,
+            top: 20,
           ),
-        ],
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(l10n.edit, style: Theme.of(ctx).textTheme.titleLarge),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(l10n.income),
+                  Switch(
+                    value: isExp,
+                    onChanged: (v) => setS(() => isExp = v),
+                  ),
+                  Text(l10n.expense),
+                ],
+              ),
+              TextField(
+                controller: titleCtrl,
+                decoration: InputDecoration(labelText: l10n.description),
+              ),
+              TextField(
+                controller: amtCtrl,
+                decoration: InputDecoration(labelText: l10n.totalAmount),
+                keyboardType: TextInputType.number,
+              ),
+              if (isExp)
+                TextField(
+                  controller: instCtrl,
+                  decoration: InputDecoration(labelText: l10n.payments),
+                  keyboardType: TextInputType.number,
+                ),
+              const SizedBox(height: 10),
+              if (!isAddingNewCat)
+                DropdownButtonFormField<String>(
+                  value: workingCats.contains(cat) ? cat : workingCats.first,
+                  items: workingCats
+                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                      .toList(),
+                  onChanged: (v) {
+                    if (v == null) return;
+                    if (isOtherCategoryLabel(v, l10n)) {
+                      setS(() => isAddingNewCat = true);
+                    } else {
+                      setS(() => cat = v);
+                    }
+                  },
+                  decoration: InputDecoration(labelText: l10n.category),
+                )
+              else
+                TextField(
+                  controller: newCatCtrl,
+                  decoration: InputDecoration(
+                    labelText: l10n.newCategoryName,
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.check),
+                      onPressed: () {
+                        final trimmed = newCatCtrl.text.trim();
+                        if (trimmed.isEmpty) return;
+                        setS(() {
+                          if (!workingCats.contains(trimmed)) {
+                            workingCats.insert(0, trimmed);
+                          }
+                          cat = trimmed;
+                          isAddingNewCat = false;
+                        });
+                      },
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isExp ? Colors.red : Colors.green,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () async {
+                    final trimmedCat =
+                        isAddingNewCat ? newCatCtrl.text.trim() : cat;
+
+                    if (trimmedCat.isEmpty) return;
+
+                    final count = int.tryParse(instCtrl.text) ?? 1;
+                    final total = double.tryParse(amtCtrl.text) ?? 0.0;
+
+                    if (count > 1) {
+                      // If changing to installments, delete original and create series
+                      await doc.reference.delete();
+                      final gId =
+                          DateTime.now().millisecondsSinceEpoch.toString();
+                      for (var i = 0; i < count; i++) {
+                        final d = DateTime.now();
+                        await FirebaseFirestore.instance
+                            .collection('workspaces')
+                            .doc(widget.wsId)
+                            .collection('transactions')
+                            .add({
+                          'title': '${titleCtrl.text} (${i + 1}/$count)',
+                          'amount': total / count,
+                          'isExpense': isExp,
+                          'category': trimmedCat,
+                          'date': DateTime(d.year, d.month + i, d.day),
+                          'groupId': gId,
+                        });
+                      }
+                    } else {
+                      await doc.reference.update({
+                        'title': titleCtrl.text,
+                        'amount': total,
+                        'isExpense': isExp,
+                        'category': trimmedCat,
+                      });
+                    }
+
+                    // If a new category was created, also update workspace list
+                    if (isAddingNewCat && !cats.contains(trimmedCat)) {
+                      await FirebaseFirestore.instance
+                          .collection('workspaces')
+                          .doc(widget.wsId)
+                          .update({
+                        'customCategories': FieldValue.arrayUnion([trimmedCat]),
+                        'targets.$trimmedCat': 0,
+                      });
+                    }
+
+                    if (ctx.mounted) Navigator.pop(ctx);
+                  },
+                  child: Text(l10n.update),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
       ),
     );
   }

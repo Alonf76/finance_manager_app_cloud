@@ -20,6 +20,9 @@
 - **Strings:** Centralized in `lib/l10n/app_localizations.dart` (hand-maintained for reliable builds; see `docs/l10n/README.md` for optional ARB/codegen path).
 - **Locale switching:** Profile screen segmented control updates `preferredLocale` in Firestore; authenticated `MaterialApp` rebuilds with `Locale('en')` or `Locale('he','IL')` (RTL for Hebrew via Flutter’s built-in directionality).
 - **Numbers/dates:** `intl` `NumberFormat.currency` and `DateFormat` use the active `Locale` (`lib/app_formatters.dart`).
+### UI & UX Polish
+- **Full Editability:** Transaction editing now matches the "Add" experience, including type toggling (Income/Expense), category creation, and installment support.
+- **Version Visibility:** App version (e.g., `v1.0.0+3`) is now displayed in the Browser Tab Title, the AppBar (near settings), and the Navigation Drawer.
 
 ## Firestore fields added/changed
 

@@ -12,14 +12,15 @@ class AppVersionDisplay extends StatelessWidget {
         if (snapshot.hasData) {
           final info = snapshot.data!;
           // Displays: 1.0.0 (Build 2)
-          return Text(
-            'Version: ${info.version} (Build ${info.buildNumber})',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.grey,
-                ),
+          return Opacity(
+            opacity: 0.6,
+            child: Text(
+              'v${info.version}+${info.buildNumber}',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
           );
         }
-        return const SizedBox.shrink();
+        return const Text('...', style: TextStyle(fontSize: 10));
       },
     );
   }
