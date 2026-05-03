@@ -1,0 +1,40 @@
+name: Increment Version
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Bump Version and Build Number
+        id: bump
+        run: |
+          # Extract current version (e.g., 1.0.0+1)
+          VERSION_LINE=$(grep 'version: ' pubspec.yaml)
+          VERSION=$(echo $VERSION_LINE | cut -d' ' -f2)
+          BASE_VERSION=$(echo $VERSION | cut -d'+' -f1)
+          BUILD_NUMBER=$(echo $VERSION | cut -d'+' -f2)
+          
+          # Increment build number
+          NEW_BUILD=$((BUILD_NUMBER + 1))
+          NEW_VERSION="$BASE_VERSION+$NEW_BUILD"
+          
+          # Update pubspec.yaml
+          sed -i "s/version: $VERSION/version: $NEW_VERSION/" pubspec.yaml
+          
+          # Setup Git and Push
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add pubspec.yaml
+          git commit -m "chore: bump version to $NEW_VERSION [skip ci]"
+          git tag "v$NEW_VERSION"
+          git push origin main --tags
