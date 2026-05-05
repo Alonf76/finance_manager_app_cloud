@@ -38,14 +38,19 @@ class _FinanceHomeState extends State<FinanceHome> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2,
+      length: 6,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Family Biz Finance'),
+          title: const Text('ניהול פיננסי משפחתי'),
           bottom: const TabBar(
+            isScrollable: true,
             tabs: [
-              Tab(icon: Icon(Icons.account_balance_wallet), text: "Balance"),
-              Tab(icon: Icon(Icons.analytics), text: "Analysis"),
+              Tab(text: "ראשי"),
+              Tab(text: "הוצאות"),
+              Tab(text: "הכנסות"),
+              Tab(text: "תשלומים"),
+              Tab(text: "יעדים"),
+              Tab(text: "אנליזה"),
             ],
           ),
         ),
@@ -91,16 +96,49 @@ class _FinanceHomeState extends State<FinanceHome> {
                 DashboardView(
                   totalIncome: totalIncome,
                   totalExpenses: totalExpenses,
-                  transactions: transactions,
                   onAddIncome: () => _openTransactionDialog(context, false),
                   onAddExpense: () => _openTransactionDialog(context, true),
                 ),
+                _buildTransactionList(
+                    transactions.where((t) => t.isExpense).toList()),
+                _buildTransactionList(
+                    transactions.where((t) => !t.isExpense).toList()),
+                const Center(child: Text("טאב תשלומים (בקרוב)")),
+                const Center(child: Text("טאב יעדים (בקרוב)")),
                 AnalysisView(monthlyHistory: monthlyHistory),
               ],
             );
           },
         ),
       ),
+    );
+  }
+
+  Widget _buildTransactionList(List<TransactionModel> list) {
+    final currencyFormat = NumberFormat.simpleCurrency(name: 'ILS');
+    return ListView.builder(
+      itemCount: list.length,
+      itemBuilder: (context, index) {
+        final t = list[index];
+        return ListTile(
+          leading: CircleAvatar(
+            backgroundColor: t.isExpense
+                ? Colors.red.withOpacity(0.1)
+                : Colors.green.withOpacity(0.1),
+            child: Icon(
+              t.isExpense ? Icons.arrow_downward : Icons.arrow_upward,
+              color: t.isExpense ? Colors.red : Colors.green,
+            ),
+          ),
+          title: Text(t.title),
+          subtitle: Text(
+              DateFormat('dd/MM/yyyy').format(t.date) + " - " + t.category),
+          trailing: Text(
+            currencyFormat.format(t.amount),
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+        );
+      },
     );
   }
 
