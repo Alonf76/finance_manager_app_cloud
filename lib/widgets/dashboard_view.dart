@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../models/transaction.dart';
 
 class DashboardView extends StatelessWidget {
   final double totalIncome;
   final double totalExpenses;
-  final List<dynamic> transactions; // Replace with your Transaction model
+  final List<TransactionModel> transactions;
   final VoidCallback onAddIncome;
   final VoidCallback onAddExpense;
 
@@ -28,21 +29,25 @@ class DashboardView extends StatelessWidget {
         Card(
           margin: const EdgeInsets.all(16),
           elevation: 4,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(24.0),
             child: Column(
               children: [
-                const Text("Current Balance",
-                    style: TextStyle(fontSize: 16, color: Colors.grey)),
+                const Text(
+                  "Current Balance",
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                ),
                 const SizedBox(height: 8),
                 Text(
                   currencyFormat.format(balance),
                   style: TextStyle(
-                      fontSize: 36,
-                      fontWeight: FontWeight.bold,
-                      color: balance >= 0 ? Colors.green : Colors.red),
+                    fontSize: 36,
+                    fontWeight: FontWeight.bold,
+                    color: balance >= 0 ? Colors.green : Colors.red,
+                  ),
                 ),
               ],
             ),
@@ -60,9 +65,10 @@ class DashboardView extends StatelessWidget {
                   icon: const Icon(Icons.add_circle_outline),
                   label: const Text("Income"),
                   style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12)),
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -72,9 +78,10 @@ class DashboardView extends StatelessWidget {
                   icon: const Icon(Icons.remove_circle_outline),
                   label: const Text("Expense"),
                   style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12)),
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
                 ),
               ),
             ],
@@ -85,9 +92,12 @@ class DashboardView extends StatelessWidget {
         const Padding(
           padding: EdgeInsets.fromLTRB(16, 24, 16, 8),
           child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text("Recent Activity",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
+            alignment: Alignment.centerLeft,
+            child: Text(
+              "Recent Activity",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ),
         ),
         Expanded(
           child: ListView.builder(
@@ -96,19 +106,20 @@ class DashboardView extends StatelessWidget {
               final t = transactions[index];
               return ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: t['isExpense']
+                  backgroundColor: t.isExpense
                       ? Colors.red.withOpacity(0.1)
                       : Colors.green.withOpacity(0.1),
                   child: Icon(
-                      t['isExpense']
-                          ? Icons.arrow_downward
-                          : Icons.arrow_upward,
-                      color: t['isExpense'] ? Colors.red : Colors.green),
+                    t.isExpense ? Icons.arrow_downward : Icons.arrow_upward,
+                    color: t.isExpense ? Colors.red : Colors.green,
+                  ),
                 ),
-                title: Text(t['title']),
-                subtitle: Text(t['category']),
-                trailing: Text(currencyFormat.format(t['amount']),
-                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                title: Text(t.title),
+                subtitle: Text(t.category),
+                trailing: Text(
+                  currencyFormat.format(t.amount),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
               );
             },
           ),

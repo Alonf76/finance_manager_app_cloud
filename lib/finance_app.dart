@@ -4,6 +4,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'widgets/dashboard_view.dart';
 import 'widgets/analysis_view.dart';
 import 'services/analysis_service.dart';
+import 'widgets/add_transaction_dialog.dart'; // Import the new dialog
+import 'models/transaction.dart';
 
 class FinanceRoot extends StatelessWidget {
   const FinanceRoot({super.key});
@@ -12,20 +14,14 @@ class FinanceRoot extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Family Biz Finance',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        useMaterial3: true,
-      ),
+      theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
       // Support for Hebrew RTL and English
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [
-        Locale('he', 'IL'),
-        Locale('en', 'US'),
-      ],
+      supportedLocales: const [Locale('he', 'IL'), Locale('en', 'US')],
       home: const FinanceHome(),
     );
   }
@@ -67,35 +63,29 @@ class _FinanceHomeState extends State<FinanceHome> {
             }
 
             final docs = snapshot.data!.docs;
+            final transactions = docs
+                .map((doc) => TransactionModel.fromFirestore(doc))
+                .toList();
 
-            // 1. Calculate Dashboard Totals
-            double totalIncome = 0;
-            double totalExpenses = 0;
-            List<Map<String, dynamic>> transactionList = [];
-
-            for (var doc in docs) {
-              final data = doc.data() as Map<String, dynamic>;
-              final amount = (data['amount'] as num).toDouble();
-              final isExpense = data['isExpense'] ?? true;
-
-              if (isExpense) {
-                totalExpenses += amount;
-              } else {
-                totalIncome += amount;
-              }
-              transactionList.add({...data, 'id': doc.id});
-            }
+            // 1. Calculate Dashboard Totals using functional logic
+            final totalIncome = transactions
+                .where((t) => !t.isExpense)
+                .fold(0.0, (sum, t) => sum + t.amount);
+            final totalExpenses = transactions
+                .where((t) => t.isExpense)
+                .fold(0.0, (sum, t) => sum + t.amount);
 
             // 2. Process Data for Analysis
-            final monthlyHistory =
-                AnalysisService.groupTransactionsByMonth(docs);
+            final monthlyHistory = AnalysisService.groupTransactionsByMonth(
+              docs,
+            );
 
             return TabBarView(
               children: [
                 DashboardView(
                   totalIncome: totalIncome,
                   totalExpenses: totalExpenses,
-                  transactions: transactionList,
+                  transactions: transactions,
                   onAddIncome: () => _openTransactionDialog(context, false),
                   onAddExpense: () => _openTransactionDialog(context, true),
                 ),
@@ -108,12 +98,40 @@ class _FinanceHomeState extends State<FinanceHome> {
     );
   }
 
-  void _openTransactionDialog(BuildContext context, bool isExpense) {
-    // Placeholder for your transaction entry logic
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-          content: Text(
-              'Opening Add ${isExpense ? 'Expense' : 'Income'} Dialog...')),
+  Future<void> _openTransactionDialog(
+    BuildContext context,
+    bool isExpense,
+  ) async {
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => AddTransactionDialog(isExpense: isExpense),
     );
+
+    if (result != null) {
+      try {
+        await FirebaseFirestore.instance.collection('transactions').add({
+          'title': result['title'],
+          'amount': result['amount'],
+          'date': Timestamp.fromDate(result['date']),
+          'category': result['category'],
+          'isExpense': result['isExpense'],
+          // Add any other fields like userId, workspaceId if applicable
+          // For now, we're assuming a single workspace/user context.
+          'timestamp':
+              FieldValue.serverTimestamp(), // Good practice for creation time
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '${isExpense ? 'Expense' : 'Income'} added successfully!',
+            ),
+          ),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to add transaction: $e')),
+        );
+      }
+    }
   }
 }
