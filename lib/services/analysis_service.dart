@@ -20,7 +20,8 @@ class AnalysisService {
     for (var doc in docs) {
       final data = doc.data() as Map<String, dynamic>;
       final DateTime date = (data['date'] as Timestamp).toDate();
-      final String key = "${date.year}-${date.month}";
+      final String key =
+          "${date.year}-${date.month.toString().padLeft(2, '0')}";
       final double amount = (data['amount'] as num).toDouble();
       final bool isExpense = data['isExpense'] ?? true;
       final String category = data['category'] ?? 'Other';
