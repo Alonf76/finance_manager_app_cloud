@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../services/analysis_service.dart';
+import 'package:family_biz_finance/services/analysis_service.dart';
 
 class AnalysisView extends StatelessWidget {
   final List<MonthlyData> monthlyHistory;

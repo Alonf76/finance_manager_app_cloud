@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../models/transaction.dart';
+import 'package:family_biz_finance/models/transaction.dart';
 
 class DashboardView extends StatelessWidget {
   final double totalIncome;
@@ -101,6 +101,7 @@ class DashboardView extends StatelessWidget {
         ),
         Expanded(
           child: ListView.builder(
+            padding: const EdgeInsets.only(bottom: 16),
             itemCount: transactions.length,
             itemBuilder: (context, index) {
               final t = transactions[index];

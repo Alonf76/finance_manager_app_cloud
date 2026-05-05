@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'widgets/dashboard_view.dart';
-import 'widgets/analysis_view.dart';
-import 'services/analysis_service.dart';
-import 'widgets/add_transaction_dialog.dart'; // Import the new dialog
-import 'models/transaction.dart';
+import 'package:family_biz_finance/widgets/dashboard_view.dart';
+import 'package:family_biz_finance/widgets/analysis_view.dart';
+import 'package:family_biz_finance/services/analysis_service.dart';
+import 'package:family_biz_finance/widgets/add_transaction_dialog.dart';
+import 'package:family_biz_finance/models/transaction.dart';
 
 class FinanceRoot extends StatelessWidget {
   const FinanceRoot({super.key});
@@ -58,11 +58,18 @@ class _FinanceHomeState extends State<FinanceHome> {
           builder: (context, snapshot) {
             if (snapshot.hasError)
               return Center(child: Text('Error: ${snapshot.error}'));
-            if (snapshot.connectionState == ConnectionState.waiting) {
+
+            if (snapshot.connectionState == ConnectionState.waiting &&
+                !snapshot.hasData) {
               return const Center(child: CircularProgressIndicator());
             }
 
-            final docs = snapshot.data!.docs;
+            final docs = snapshot.data?.docs ?? [];
+            if (docs.isEmpty &&
+                snapshot.connectionState == ConnectionState.active) {
+              return _buildEmptyState(context);
+            }
+
             final transactions =
                 docs.map((doc) => TransactionModel.fromFirestore(doc)).toList();
 
@@ -93,6 +100,34 @@ class _FinanceHomeState extends State<FinanceHome> {
             );
           },
         ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.account_balance_wallet_outlined,
+              size: 64, color: Colors.grey),
+          const SizedBox(height: 16),
+          const Text("No transactions yet",
+              style: TextStyle(fontSize: 18, color: Colors.grey)),
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ElevatedButton(
+                  onPressed: () => _openTransactionDialog(context, false),
+                  child: const Text("Add Income")),
+              const SizedBox(width: 12),
+              ElevatedButton(
+                  onPressed: () => _openTransactionDialog(context, true),
+                  child: const Text("Add Expense")),
+            ],
+          )
+        ],
       ),
     );
   }
