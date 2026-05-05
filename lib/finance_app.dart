@@ -6,6 +6,7 @@ import 'package:family_biz_finance/widgets/analysis_view.dart';
 import 'package:family_biz_finance/services/analysis_service.dart';
 import 'package:family_biz_finance/widgets/add_transaction_dialog.dart';
 import 'package:family_biz_finance/models/transaction.dart';
+import 'package:intl/intl.dart';
 
 class FinanceRoot extends StatelessWidget {
   const FinanceRoot({super.key});
@@ -21,7 +22,10 @@ class FinanceRoot extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [Locale('he', 'IL'), Locale('en', 'US')],
+      supportedLocales: const [
+        Locale('he', 'IL'),
+        Locale('en', 'US'),
+      ],
       home: const FinanceHome(),
     );
   }
@@ -99,12 +103,12 @@ class _FinanceHomeState extends State<FinanceHome> {
                   onAddIncome: () => _openTransactionDialog(context, false),
                   onAddExpense: () => _openTransactionDialog(context, true),
                 ),
-                _buildTransactionList(
-                    transactions.where((t) => t.isExpense).toList()),
-                _buildTransactionList(
-                    transactions.where((t) => !t.isExpense).toList()),
-                const Center(child: Text("טאב תשלומים (בקרוב)")),
-                const Center(child: Text("טאב יעדים (בקרוב)")),
+                _buildDetailedList(context,
+                    transactions.where((t) => t.isExpense).toList(), true),
+                _buildDetailedList(context,
+                    transactions.where((t) => !t.isExpense).toList(), false),
+                const Center(child: Text("תשלומים (כפי שהיה)")),
+                const Center(child: Text("יעדים (כפי שהיה)")),
                 AnalysisView(monthlyHistory: monthlyHistory),
               ],
             );
@@ -114,8 +118,11 @@ class _FinanceHomeState extends State<FinanceHome> {
     );
   }
 
-  Widget _buildTransactionList(List<TransactionModel> list) {
+  Widget _buildDetailedList(
+      BuildContext context, List<TransactionModel> list, bool isExpense) {
     final currencyFormat = NumberFormat.simpleCurrency(name: 'ILS');
+    if (list.isEmpty) return const Center(child: Text("אין נתונים להצגה"));
+
     return ListView.builder(
       itemCount: list.length,
       itemBuilder: (context, index) {

@@ -14,7 +14,7 @@ class AnalysisView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Financial Trends",
+          const Text("מגמות פיננסיות",
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
 
@@ -50,7 +50,7 @@ class AnalysisView extends StatelessWidget {
           ),
 
           const SizedBox(height: 32),
-          const Text("Expenses by Category (Current Month)",
+          const Text("הוצאות לפי קטגוריה (חודש נוכחי)",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
 
@@ -81,7 +81,7 @@ class AnalysisView extends StatelessWidget {
               ),
             )
           else
-            const Center(child: Text("No data available for analysis")),
+            const Center(child: Text("אין נתונים זמינים לניתוח")),
         ],
       ),
     );
