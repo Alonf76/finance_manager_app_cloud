@@ -1,3 +1,4 @@
+// This file should be located in lib/services/analysis_service.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class MonthlyData {

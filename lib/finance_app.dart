@@ -63,9 +63,8 @@ class _FinanceHomeState extends State<FinanceHome> {
             }
 
             final docs = snapshot.data!.docs;
-            final transactions = docs
-                .map((doc) => TransactionModel.fromFirestore(doc))
-                .toList();
+            final transactions =
+                docs.map((doc) => TransactionModel.fromFirestore(doc)).toList();
 
             // 1. Calculate Dashboard Totals using functional logic
             final totalIncome = transactions
