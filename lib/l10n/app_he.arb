@@ -6,5 +6,8 @@
   "emailHint": "אימייל",
   "passwordHint": "סיסמה",
   "workspaceSelectionTitle": "בחירת מרחב עבודה",
-  "ledgerTitle": "ספר חשבונות"
+  "ledgerTitle": "ספר חשבונות",
+  "bizTx": "עסקה עסקית",
+  "bizTxHint": "סמן כהוצאה/הכנסה עסקית",
+  "noWorkspacesFound": "לא נמצאו מרחבי עבודה"
 }

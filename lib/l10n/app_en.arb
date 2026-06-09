@@ -6,5 +6,8 @@
   "emailHint": "Email",
   "passwordHint": "Password",
   "workspaceSelectionTitle": "Select Workspace",
-  "ledgerTitle": "Ledger"
+  "ledgerTitle": "Ledger",
+  "bizTx": "Business Transaction",
+  "bizTxHint": "Tag this as a business expense/income",
+  "noWorkspacesFound": "No workspaces found"
 }

@@ -672,8 +672,8 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
                 ],
               ),
               SwitchListTile(
-                title: const Text("Business Transaction"),
-                subtitle: const Text("Tag this as a business expense/income"),
+                title: Text(l10n.bizTx),
+                subtitle: Text(l10n.bizTxHint),
                 secondary: const Icon(Icons.business),
                 value: isBiz,
                 onChanged: (v) => setS(() => isBiz = v),
@@ -928,8 +928,8 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
                 ],
               ),
               SwitchListTile(
-                title: const Text("Business Transaction"),
-                subtitle: const Text("Tag this as a business expense/income"),
+                title: Text(l10n.bizTx),
+                subtitle: Text(l10n.bizTxHint),
                 secondary: const Icon(Icons.business),
                 value: isBiz,
                 onChanged: (v) => setS(() => isBiz = v),
