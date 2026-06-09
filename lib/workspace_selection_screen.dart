@@ -1,7 +1,7 @@
+import 'package:family_biz_finance/screens/main_finance_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:family_biz_finance/features/ledger/screens/ledger_screen.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class WorkspaceSelectionScreen extends StatelessWidget {
   const WorkspaceSelectionScreen({super.key});
@@ -21,11 +21,14 @@ class WorkspaceSelectionScreen extends StatelessWidget {
       body: Center(
         child: ElevatedButton(
             onPressed: () {
-              // Placeholder: In a real app, you'd select a workspace and then navigate
+              // Navigate to the real MainFinanceScreen (Ledger)
               Navigator.of(context).pushReplacement(MaterialPageRoute(
-                  builder: (context) => const LedgerScreen()));
+                  builder: (context) => const MainFinanceScreen(
+                        wsId: 'default-workspace',
+                        wsName: 'Family Biz',
+                      )));
             },
-            child: const Text("Go to Ledger (Placeholder)")),
+            child: Text(l10n.ledgerTitle)),
       ),
     );
   }

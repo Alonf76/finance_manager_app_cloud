@@ -1,135 +1,175 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:intl/intl.dart' as intl;
 
-/// Hand-maintained localizations (M2). See `docs/l10n/README.md` for ARB/codegen notes.
-class AppLocalizations {
-  AppLocalizations(this.locale);
+import 'app_localizations_en.dart';
+import 'app_localizations_he.dart';
 
-  final Locale locale;
+// ignore_for_file: type=lint
 
-  bool get _he => locale.languageCode == 'he';
+/// Callers can lookup localized strings with an instance of AppLocalizations
+/// returned by `AppLocalizations.of(context)`.
+///
+/// Applications need to include `AppLocalizations.delegate()` in their app's
+/// `localizationDelegates` list, and the locales they support in the app's
+/// `supportedLocales` list. For example:
+///
+/// ```dart
+/// import 'l10n/app_localizations.dart';
+///
+/// return MaterialApp(
+///   localizationsDelegates: AppLocalizations.localizationsDelegates,
+///   supportedLocales: AppLocalizations.supportedLocales,
+///   home: MyApplicationHome(),
+/// );
+/// ```
+///
+/// ## Update pubspec.yaml
+///
+/// Please make sure to update your pubspec.yaml to include the following
+/// packages:
+///
+/// ```yaml
+/// dependencies:
+///   # Internationalization support.
+///   flutter_localizations:
+///     sdk: flutter
+///   intl: any # Use the pinned version from flutter_localizations
+///
+///   # Rest of dependencies
+/// ```
+///
+/// ## iOS Applications
+///
+/// iOS applications define key application metadata, including supported
+/// locales, in an Info.plist file that is built into the application bundle.
+/// To configure the locales supported by your app, you’ll need to edit this
+/// file.
+///
+/// First, open your project’s ios/Runner.xcworkspace Xcode workspace file.
+/// Then, in the Project Navigator, open the Info.plist file under the Runner
+/// project’s Runner folder.
+///
+/// Next, select the Information Property List item, select Add Item from the
+/// Editor menu, then select Localizations from the pop-up menu.
+///
+/// Select and expand the newly-created Localizations item then, for each
+/// locale your application supports, add a new item and select the locale
+/// you wish to add from the pop-up menu in the Value field. This list should
+/// be consistent with the languages listed in the AppLocalizations.supportedLocales
+/// property.
+abstract class AppLocalizations {
+  AppLocalizations(String locale)
+      : localeName = intl.Intl.canonicalizedLocale(locale.toString());
 
-  static AppLocalizations of(BuildContext context) {
-    final value = Localizations.of<AppLocalizations>(context, AppLocalizations);
-    assert(value != null, 'AppLocalizations not found in widget tree');
-    return value!;
+  final String localeName;
+
+  static AppLocalizations? of(BuildContext context) {
+    return Localizations.of<AppLocalizations>(context, AppLocalizations);
   }
 
-  static const LocalizationsDelegate<AppLocalizations> delegate = _AppLocalizationsDelegate();
+  static const LocalizationsDelegate<AppLocalizations> delegate =
+      _AppLocalizationsDelegate();
 
-  static const List<Locale> supportedLocales = [
-    Locale('en'),
-    Locale('he', 'IL'),
+  /// A list of this localizations delegate along with the default localizations
+  /// delegates.
+  ///
+  /// Returns a list of localizations delegates containing this delegate along with
+  /// GlobalMaterialLocalizations.delegate, GlobalCupertinoLocalizations.delegate,
+  /// and GlobalWidgetsLocalizations.delegate.
+  ///
+  /// Additional delegates can be added by appending to this list in
+  /// MaterialApp. This list does not have to be used at all if a custom list
+  /// of delegates is preferred or required.
+  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
+      <LocalizationsDelegate<dynamic>>[
+    delegate,
+    GlobalMaterialLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
   ];
 
-  String get appTitle => _he ? 'כספים משפחתיים' : 'Family Biz Finance';
+  /// A list of this localizations delegate's supported locales.
+  static const List<Locale> supportedLocales = <Locale>[
+    Locale('en'),
+    Locale('he')
+  ];
 
-  String get signIn => _he ? 'כניסה' : 'Sign in';
-  String get signUp => _he ? 'הרשמה' : 'Sign up';
-  String get email => _he ? 'אימייל' : 'Email';
-  String get password => _he ? 'סיסמה' : 'Password';
-  String get createAccount => _he ? 'צור חשבון' : 'Create account';
-  String get haveAccount => _he ? 'יש לך חשבון? התחבר' : 'Already have an account? Sign in';
-  String get noAccount => _he ? 'אין לך חשבון? הרשם' : 'No account? Sign up';
+  /// No description provided for @appTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Family Biz Finance'**
+  String get appTitle;
 
-  String errorWithMessage(String message) => _he ? 'שגיאה: $message' : 'Error: $message';
+  /// No description provided for @loginTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Login'**
+  String get loginTitle;
 
-  String get myWorkspaces => _he ? 'החשבונות שלי' : 'My workspaces';
-  String get noActiveWorkspaces => _he ? 'אין חשבונות פעילים' : 'No active workspaces';
-  String get signOut => _he ? 'התנתק' : 'Sign out';
-  String get createNewFamilyWorkspace => _he ? 'צור חשבון משפחתי חדש' : 'Create new family workspace';
-  String get workspaceName => _he ? 'שם החשבון' : 'Workspace name';
-  String get create => _he ? 'צור' : 'Create';
-  String get cancel => _he ? 'ביטול' : 'Cancel';
-  String get joinWorkspace => _he ? 'הצטרפות בקוד' : 'Join with code';
-  String get enterInviteCode => _he ? 'קוד הזמנה' : 'Invite code';
-  String get join => _he ? 'הצטרף' : 'Join';
-  String get joinSuccess => _he ? 'הצטרפת לחשבון בהצלחה' : 'Joined workspace successfully';
-  String get inviteInvalid => _he ? 'לא נמצא חשבון עם הקוד הזה.' : 'No workspace matches that code.';
-  String get pendingInvitesTitle => _he ? 'הזמנות ממתינות' : 'Pending invitations';
-  String get acceptInvite => _he ? 'קבל' : 'Accept';
-  String get declineInvite => _he ? 'דחה' : 'Decline';
+  /// No description provided for @registerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Register'**
+  String get registerTitle;
 
-  String get tabExpenses => _he ? 'הוצאות' : 'Expenses';
-  String get tabIncome => _he ? 'הכנסות' : 'Income';
-  String get tabInstallments => _he ? 'תשלומים' : 'Installments';
-  String get tabTargets => _he ? 'יעדים' : 'Targets';
+  /// No description provided for @emailHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get emailHint;
 
-  String cycle(String start, String end) => _he ? 'סבב: $start – $end' : 'Cycle: $start – $end';
+  /// No description provided for @passwordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get passwordHint;
 
-  String incomeTotal(String amount) => _he ? 'הכנסות: $amount' : 'Income: $amount';
-  String expensesTotal(String amount) => _he ? 'הוצאות: $amount' : 'Expenses: $amount';
-  String balance(String amount) => _he ? 'יתרה: $amount' : 'Balance: $amount';
+  /// No description provided for @workspaceSelectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Workspace'**
+  String get workspaceSelectionTitle;
 
-  String remaining(String amount) => _he ? 'נשאר: $amount' : 'Left: $amount';
-  String overBudget(String amount) => _he ? 'חריגה: $amount' : 'Over: $amount';
-
-  String spentOfTarget(String spent, String target) => '$spent / $target';
-
-  String get deleteSeriesTitle => _he ? 'מחיקת סדרה' : 'Delete series';
-  String get deleteSeriesConfirm => _he ? 'האם למחוק את כל התשלומים?' : 'Delete all payments in this series?';
-  String get deleteAll => _he ? 'מחק הכל' : 'Delete all';
-  String get edit => _he ? 'עריכה' : 'Edit';
-  String get delete => _he ? 'מחיקה' : 'Delete';
-  String get deleteTxTitle => _he ? 'מחיקת תנועה' : 'Delete transaction';
-  String get deleteTxConfirm => _he ? 'האם למחוק את התנועה הזו?' : 'Delete this transaction?';
-  String get update => _he ? 'עדכן' : 'Update';
-
-  String get income => _he ? 'הכנסה' : 'Income';
-  String get expense => _he ? 'הוצאה' : 'Expense';
-  String get description => _he ? 'תיאור' : 'Description';
-  String get totalAmount => _he ? 'סכום כולל' : 'Total amount';
-  String get payments => _he ? 'תשלומים' : 'Payments';
-  String get category => _he ? 'קטגוריה' : 'Category';
-  String get newCategoryName => _he ? 'שם קטגוריה חדשה' : 'New category name';
-
-  String errorSavingCategory(String message) =>
-      _he ? 'שגיאה בשמירת קטגוריה: $message' : 'Could not save category: $message';
-
-  String get enterNewCategoryName => _he ? 'נא להזין שם קטגוריה חדשה' : 'Enter a new category name';
-  String get save => _he ? 'שמור' : 'Save';
-
-  String installmentProgress(String current, String total) =>
-      _he ? 'תשלום $current מתוך $total' : 'Payment $current of $total';
-
-  String get settings => _he ? 'הגדרות' : 'Settings';
-  String get profileSettings => _he ? 'פרופיל והעדפות' : 'Profile & preferences';
-  String get language => _he ? 'שפה' : 'Language';
-  String get timezone => _he ? 'אזור זמן' : 'Time zone';
-  String get currency => _he ? 'מטבע' : 'Currency';
-  String get languageEnglish => _he ? 'אנגלית' : 'English';
-  String get languageHebrew => _he ? 'עברית' : 'Hebrew';
-  String get workspaceSettings => _he ? 'חשבון' : 'Workspace';
-  String get inviteCode => _he ? 'קוד הזמנה' : 'Invite code';
-  String get copyInviteCode => _he ? 'העתק קוד' : 'Copy code';
-  String get inviteEmailHint => _he ? 'אימייל מוזמן' : 'Invitee email';
-  String get sendInvite => _he ? 'שלח הזמנה' : 'Send invite';
-  String get inviteSent => _he ? 'ההזמנה נשלחה' : 'Invitation sent';
-  String get copied => _he ? 'הועתק' : 'Copied';
-
-  String get readOnlyNotice => _he ? 'גישה לצפייה בלבד' : 'View-only access';
-
-  String get catGroceries => _he ? 'מכולת ומזון' : 'Groceries & food';
-  String get catHousing => _he ? 'דיור' : 'Housing';
-  String get catCar => _he ? 'רכב' : 'Car & transport';
-  String get catHealth => _he ? 'בריאות' : 'Health';
-  String get catLeisure => _he ? 'פנאי' : 'Leisure';
-  String get catOther => _he ? 'אחר' : 'Other';
+  /// No description provided for @ledgerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ledger'**
+  String get ledgerTitle;
 }
 
-class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
+class _AppLocalizationsDelegate
+    extends LocalizationsDelegate<AppLocalizations> {
   const _AppLocalizationsDelegate();
 
   @override
-  bool isSupported(Locale locale) => locale.languageCode == 'en' || locale.languageCode == 'he';
-
-  @override
   Future<AppLocalizations> load(Locale locale) {
-    final normalized =
-        locale.languageCode == 'he' ? const Locale('he', 'IL') : const Locale('en');
-    return SynchronousFuture(AppLocalizations(normalized));
+    return SynchronousFuture<AppLocalizations>(lookupAppLocalizations(locale));
   }
 
   @override
-  bool shouldReload(covariant LocalizationsDelegate<AppLocalizations> old) => false;
+  bool isSupported(Locale locale) =>
+      <String>['en', 'he'].contains(locale.languageCode);
+
+  @override
+  bool shouldReload(_AppLocalizationsDelegate old) => false;
+}
+
+AppLocalizations lookupAppLocalizations(Locale locale) {
+  // Lookup logic when only language code is specified.
+  switch (locale.languageCode) {
+    case 'en':
+      return AppLocalizationsEn();
+    case 'he':
+      return AppLocalizationsHe();
+  }
+
+  throw FlutterError(
+      'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
+      'an issue with the localizations generation tool. Please file an issue '
+      'on GitHub with a reproducible sample app and the gen-l10n configuration '
+      'that was used.');
 }

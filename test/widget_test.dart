@@ -1,8 +1,7 @@
+import 'package:family_biz_finance/auth_wrapper.dart';
+import 'package:family_biz_finance/finance_app.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:family_biz_finance/finance_app.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:family_biz_finance/features/auth/auth_wrapper.dart';
 
 void main() {
   testWidgets('App starts and loads AuthWrapper', (WidgetTester tester) async {

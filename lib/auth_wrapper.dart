@@ -1,7 +1,7 @@
+import 'package:family_biz_finance/screens/login_screen.dart';
+import 'package:family_biz_finance/workspace_selection_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:family_biz_finance/features/auth/screens/login_screen.dart';
-import 'package:family_biz_finance/features/workspace/screens/workspace_selection_screen.dart';
 
 /// This widget listens to Firebase Auth state changes and routes the user
 /// to the appropriate screen (Login or Workspace Selection).

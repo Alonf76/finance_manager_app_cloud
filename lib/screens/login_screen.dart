@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:family_biz_finance/l10n/app_localizations.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../user_profile_repository.dart';
 
@@ -40,7 +40,10 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 20),
               Text(
                 _isLogin ? l10n.signIn : l10n.signUp,
-                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 30),
               TextField(
@@ -75,10 +78,11 @@ class _LoginScreenState extends State<LoginScreen> {
                           password: trimmedPass,
                         );
                       } else {
-                        await FirebaseAuth.instance.createUserWithEmailAndPassword(
-                          email: trimmedEmail,
-                          password: trimmedPass,
-                        );
+                        await FirebaseAuth.instance
+                            .createUserWithEmailAndPassword(
+                              email: trimmedEmail,
+                              password: trimmedPass,
+                            );
                       }
                       final user = FirebaseAuth.instance.currentUser;
                       if (user != null) {
@@ -87,7 +91,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     } catch (e) {
                       if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(l10n.errorWithMessage(e.toString()))),
+                        SnackBar(
+                          content: Text(l10n.errorWithMessage(e.toString())),
+                        ),
                       );
                     }
                   },

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart'; // Generated localization
-import 'package:family_biz_finance/features/auth/auth_wrapper.dart';
+import 'package:family_biz_finance/auth_wrapper.dart';
 
 class FinanceRoot extends StatelessWidget {
   const FinanceRoot({super.key});

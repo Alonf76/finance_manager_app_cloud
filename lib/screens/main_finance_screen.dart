@@ -2,16 +2,16 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:family_biz_finance/l10n/app_localizations.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../app_formatters.dart';
 import '../default_categories.dart';
 import '../user_profile_repository.dart';
+import '../widgets/app_version_display.dart';
 import '../workspace_membership.dart';
 import '../workspace_role.dart';
-import '../widgets/app_version_display.dart';
 
 class MainFinanceScreen extends StatefulWidget {
   final String wsId;
@@ -91,8 +91,10 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(l10n.workspaceSettings,
-                  style: Theme.of(ctx).textTheme.titleLarge),
+              Text(
+                l10n.workspaceSettings,
+                style: Theme.of(ctx).textTheme.titleLarge,
+              ),
               const SizedBox(height: 12),
               Text(l10n.inviteCode, style: Theme.of(ctx).textTheme.titleSmall),
               const SizedBox(height: 6),
@@ -104,15 +106,18 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
                     : () async {
                         await Clipboard.setData(ClipboardData(text: invite));
                         if (!ctx.mounted) return;
-                        ScaffoldMessenger.of(ctx)
-                            .showSnackBar(SnackBar(content: Text(l10n.copied)));
+                        ScaffoldMessenger.of(
+                          ctx,
+                        ).showSnackBar(SnackBar(content: Text(l10n.copied)));
                       },
                 icon: const Icon(Icons.copy),
                 label: Text(l10n.copyInviteCode),
               ),
               const SizedBox(height: 16),
-              Text(l10n.inviteEmailHint,
-                  style: Theme.of(ctx).textTheme.titleSmall),
+              Text(
+                l10n.inviteEmailHint,
+                style: Theme.of(ctx).textTheme.titleSmall,
+              ),
               const SizedBox(height: 6),
               TextField(
                 controller: emailCtrl,
@@ -131,8 +136,9 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
                     email: emailCtrl.text,
                   );
                   if (!ctx.mounted) return;
-                  ScaffoldMessenger.of(ctx)
-                      .showSnackBar(SnackBar(content: Text(l10n.inviteSent)));
+                  ScaffoldMessenger.of(
+                    ctx,
+                  ).showSnackBar(SnackBar(content: Text(l10n.inviteSent)));
                   emailCtrl.clear();
                 },
                 child: Text(l10n.sendInvite),
@@ -184,7 +190,8 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
             final defaultCats = defaultWorkspaceCategories(l10n);
             int billingDay = getSafeField(wsSnap.data!, 'billingDay', 10);
             List<String> cats = List<String>.from(
-                getSafeField(wsSnap.data!, 'customCategories', <String>[]));
+              getSafeField(wsSnap.data!, 'customCategories', <String>[]),
+            );
             if (cats.isEmpty) {
               cats = List<String>.from(defaultCats);
             } else {
@@ -235,15 +242,20 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
                       DrawerHeader(
                         decoration: const BoxDecoration(color: Colors.teal),
                         child: Center(
-                          child: Text(widget.wsName,
-                              style: const TextStyle(
-                                  color: Colors.white, fontSize: 24)),
+                          child: Text(
+                            widget.wsName,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                            ),
+                          ),
                         ),
                       ),
                       const Spacer(),
                       const Padding(
-                          padding: EdgeInsets.all(16.0),
-                          child: AppVersionDisplay()),
+                        padding: EdgeInsets.all(16.0),
+                        child: AppVersionDisplay(),
+                      ),
                     ],
                   ),
                 ),
@@ -255,7 +267,9 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
                       color: Colors.amber.shade100,
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 10),
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
                         child: Row(
                           children: [
                             const Icon(Icons.visibility, size: 18),
@@ -275,7 +289,8 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
                       builder: (context, snapshot) {
                         if (!snapshot.hasData) {
                           return const Center(
-                              child: CircularProgressIndicator());
+                            child: CircularProgressIndicator(),
+                          );
                         }
 
                         final now = DateTime.now();
@@ -291,15 +306,19 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
                         final allDocs = snapshot.data!.docs;
                         final currentDocs = allDocs.where((d) {
                           final dDate = (d['date'] as Timestamp).toDate();
-                          return dDate.isAfter(cycleStart
-                                  .subtract(const Duration(seconds: 1))) &&
+                          return dDate.isAfter(
+                                cycleStart.subtract(const Duration(seconds: 1)),
+                              ) &&
                               dDate.isBefore(cycleEnd);
                         }).toList();
 
                         var totalExp = 0.0;
                         var totalInc = 0.0;
-                        final expByCat = <String,
-                            List<DocumentSnapshot<Map<String, dynamic>>>>{};
+                        final expByCat =
+                            <
+                              String,
+                              List<DocumentSnapshot<Map<String, dynamic>>>
+                            >{};
                         final incDocs =
                             <DocumentSnapshot<Map<String, dynamic>>>[];
 
@@ -307,8 +326,11 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
                           final a = (d['amount'] ?? 0).toDouble();
                           if (getSafeField(d, 'isExpense', true)) {
                             totalExp += a;
-                            final c = getSafeField(d, 'category', l10n.catOther)
-                                .toString();
+                            final c = getSafeField(
+                              d,
+                              'category',
+                              l10n.catOther,
+                            ).toString();
                             expByCat.putIfAbsent(c, () => []).add(d);
                           } else {
                             totalInc += a;
@@ -333,11 +355,15 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
                                 Expanded(
                                   child: ListView(
                                     children: cats.map((cat) {
-                                      final catDocs = expByCat[cat] ??
-                                          const <DocumentSnapshot<
-                                              Map<String, dynamic>>>[];
-                                      final catTarget =
-                                          (targets[cat] ?? 0).toDouble();
+                                      final catDocs =
+                                          expByCat[cat] ??
+                                          const <
+                                            DocumentSnapshot<
+                                              Map<String, dynamic>
+                                            >
+                                          >[];
+                                      final catTarget = (targets[cat] ?? 0)
+                                          .toDouble();
                                       final catSpent = catDocs.fold<double>(
                                         0,
                                         (sum, doc) =>
@@ -351,9 +377,11 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
                                           : Colors.red;
                                       final statusText = remaining >= 0
                                           ? l10n.remaining(
-                                              money.format(remaining))
+                                              money.format(remaining),
+                                            )
                                           : l10n.overBudget(
-                                              money.format(remaining.abs()));
+                                              money.format(remaining.abs()),
+                                            );
 
                                       return Column(
                                         key: ValueKey('$cat$catTarget'),
@@ -363,9 +391,12 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
                                           Container(
                                             width: double.infinity,
                                             padding: const EdgeInsets.symmetric(
-                                                horizontal: 16, vertical: 8),
-                                            color:
-                                                Colors.teal.withOpacity(0.05),
+                                              horizontal: 16,
+                                              vertical: 8,
+                                            ),
+                                            color: Colors.teal.withOpacity(
+                                              0.05,
+                                            ),
                                             child: Row(
                                               mainAxisAlignment:
                                                   MainAxisAlignment
@@ -395,8 +426,15 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
                                               ],
                                             ),
                                           ),
-                                          ...catDocs.map((d) => _buildTxTile(
-                                              d, role, l10n, money, cats)),
+                                          ...catDocs.map(
+                                            (d) => _buildTxTile(
+                                              d,
+                                              role,
+                                              l10n,
+                                              money,
+                                              cats,
+                                            ),
+                                          ),
                                         ],
                                       );
                                     }).toList(),
@@ -405,13 +443,26 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
                               ],
                             ),
                             ListView(
-                                children: incDocs
-                                    .map((d) => _buildTxTile(
-                                        d, role, l10n, money, cats))
-                                    .toList()),
+                              children: incDocs
+                                  .map(
+                                    (d) => _buildTxTile(
+                                      d,
+                                      role,
+                                      l10n,
+                                      money,
+                                      cats,
+                                    ),
+                                  )
+                                  .toList(),
+                            ),
                             _buildInstallmentsTab(allDocs, role, l10n),
                             _buildTargetsTab(
-                                targets, cats, role, l10n, currencyCode),
+                              targets,
+                              cats,
+                              role,
+                              l10n,
+                              currencyCode,
+                            ),
                           ],
                         );
                       },
@@ -444,8 +495,9 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
     return ListView(
       padding: const EdgeInsets.all(16),
       children: cats.map((cat) {
-        final ctrl =
-            TextEditingController(text: (targets[cat] ?? '').toString());
+        final ctrl = TextEditingController(
+          text: (targets[cat] ?? '').toString(),
+        );
         return ListTile(
           key: ValueKey('target_$cat'),
           title: Text(cat),
@@ -464,9 +516,7 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
                 FirebaseFirestore.instance
                     .collection('workspaces')
                     .doc(widget.wsId)
-                    .update({
-                  'targets.$cat': double.tryParse(val) ?? 0,
-                });
+                    .update({'targets.$cat': double.tryParse(val) ?? 0});
               },
             ),
           ),
@@ -488,12 +538,14 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
     return ListView(
       children: groups.keys.map((gId) {
         var group = groups[gId]!;
-        group.sort((a, b) =>
-            (a['date'] as Timestamp).compareTo(b['date'] as Timestamp));
+        group.sort(
+          (a, b) => (a['date'] as Timestamp).compareTo(b['date'] as Timestamp),
+        );
         final total = group.length;
         final current = group
-            .where((d) =>
-                (d['date'] as Timestamp).toDate().isBefore(DateTime.now()))
+            .where(
+              (d) => (d['date'] as Timestamp).toDate().isBefore(DateTime.now()),
+            )
             .length;
         return Card(
           margin: const EdgeInsets.all(10),
@@ -512,8 +564,10 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
     );
   }
 
-  void _deleteSeries(List<DocumentSnapshot<Map<String, dynamic>>> group,
-      AppLocalizations l10n) {
+  void _deleteSeries(
+    List<DocumentSnapshot<Map<String, dynamic>>> group,
+    AppLocalizations l10n,
+  ) {
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -575,8 +629,11 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
     );
   }
 
-  void _editSingle(DocumentSnapshot<Map<String, dynamic>> doc,
-      List<String> cats, AppLocalizations l10n) {
+  void _editSingle(
+    DocumentSnapshot<Map<String, dynamic>> doc,
+    List<String> cats,
+    AppLocalizations l10n,
+  ) {
     final data = doc.data() as Map<String, dynamic>;
     final workingCats = List<String>.from(cats);
     final titleCtrl = TextEditingController(text: data['title']?.toString());
@@ -586,6 +643,7 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
 
     var cat = data['category']?.toString() ?? workingCats.first;
     var isExp = data['isExpense'] as bool? ?? true;
+    var isBiz = data['isBusiness'] as bool? ?? false;
     var isAddingNewCat = false;
 
     showModalBottomSheet<void>(
@@ -607,12 +665,16 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(l10n.income),
-                  Switch(
-                    value: isExp,
-                    onChanged: (v) => setS(() => isExp = v),
-                  ),
+                  Switch(value: isExp, onChanged: (v) => setS(() => isExp = v)),
                   Text(l10n.expense),
                 ],
+              ),
+              SwitchListTile(
+                title: const Text("Business Transaction"),
+                subtitle: const Text("Tag this as a business expense/income"),
+                secondary: const Icon(Icons.business),
+                value: isBiz,
+                onChanged: (v) => setS(() => isBiz = v),
               ),
               TextField(
                 controller: titleCtrl,
@@ -676,8 +738,9 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
                     foregroundColor: Colors.white,
                   ),
                   onPressed: () async {
-                    final trimmedCat =
-                        isAddingNewCat ? newCatCtrl.text.trim() : cat;
+                    final trimmedCat = isAddingNewCat
+                        ? newCatCtrl.text.trim()
+                        : cat;
 
                     if (trimmedCat.isEmpty) return;
 
@@ -687,8 +750,8 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
                     if (count > 1) {
                       // If changing to installments, delete original and create series
                       await doc.reference.delete();
-                      final gId =
-                          DateTime.now().millisecondsSinceEpoch.toString();
+                      final gId = DateTime.now().millisecondsSinceEpoch
+                          .toString();
                       for (var i = 0; i < count; i++) {
                         final d = DateTime.now();
                         await FirebaseFirestore.instance
@@ -696,13 +759,14 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
                             .doc(widget.wsId)
                             .collection('transactions')
                             .add({
-                          'title': '${titleCtrl.text} (${i + 1}/$count)',
-                          'amount': total / count,
-                          'isExpense': isExp,
-                          'category': trimmedCat,
-                          'date': DateTime(d.year, d.month + i, d.day),
-                          'groupId': gId,
-                        });
+                              'title': '${titleCtrl.text} (${i + 1}/$count)',
+                              'amount': total / count,
+                              'isExpense': isExp,
+                              'category': trimmedCat,
+                              'isBusiness': isBiz,
+                              'date': DateTime(d.year, d.month + i, d.day),
+                              'groupId': gId,
+                            });
                       }
                     } else {
                       await doc.reference.update({
@@ -710,6 +774,7 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
                         'amount': total,
                         'isExpense': isExp,
                         'category': trimmedCat,
+                        'isBusiness': isBiz,
                       });
                     }
 
@@ -719,9 +784,11 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
                           .collection('workspaces')
                           .doc(widget.wsId)
                           .update({
-                        'customCategories': FieldValue.arrayUnion([trimmedCat]),
-                        'targets.$trimmedCat': 0,
-                      });
+                            'customCategories': FieldValue.arrayUnion([
+                              trimmedCat,
+                            ]),
+                            'targets.$trimmedCat': 0,
+                          });
                     }
 
                     if (ctx.mounted) Navigator.pop(ctx);
@@ -738,7 +805,9 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
   }
 
   void _deleteSingle(
-      DocumentSnapshot<Map<String, dynamic>> doc, AppLocalizations l10n) {
+    DocumentSnapshot<Map<String, dynamic>> doc,
+    AppLocalizations l10n,
+  ) {
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -753,7 +822,9 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
             child: Text(l10n.delete),
           ),
           TextButton(
-              onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l10n.cancel),
+          ),
         ],
       ),
     );
@@ -784,12 +855,16 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
               Text(
                 l10n.incomeTotal(money.format(inc)),
                 style: const TextStyle(
-                    color: Colors.green, fontWeight: FontWeight.bold),
+                  color: Colors.green,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               Text(
                 l10n.expensesTotal(money.format(exp)),
                 style: const TextStyle(
-                    color: Colors.red, fontWeight: FontWeight.bold),
+                  color: Colors.red,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ),
@@ -826,6 +901,7 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
         : workingCats.first;
     var cat = defaultSpend;
     var isExp = true;
+    var isBiz = false;
     var isAddingNewCat = false;
 
     showModalBottomSheet<void>(
@@ -846,12 +922,16 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(l10n.income),
-                  Switch(
-                    value: isExp,
-                    onChanged: (v) => setS(() => isExp = v),
-                  ),
+                  Switch(value: isExp, onChanged: (v) => setS(() => isExp = v)),
                   Text(l10n.expense),
                 ],
+              ),
+              SwitchListTile(
+                title: const Text("Business Transaction"),
+                subtitle: const Text("Tag this as a business expense/income"),
+                secondary: const Icon(Icons.business),
+                value: isBiz,
+                onChanged: (v) => setS(() => isBiz = v),
               ),
               TextField(
                 controller: title,
@@ -895,7 +975,8 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
                       onPressed: () async {
                         final trimmed = newCatCtrl.text.trim();
                         if (trimmed.isEmpty ||
-                            isOtherCategoryLabel(trimmed, l10n)) return;
+                            isOtherCategoryLabel(trimmed, l10n))
+                          return;
 
                         setS(() {
                           if (!workingCats.contains(trimmed)) {
@@ -915,16 +996,19 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
                               .collection('workspaces')
                               .doc(widget.wsId)
                               .update({
-                            'customCategories':
-                                FieldValue.arrayUnion([trimmed]),
-                            'targets.$trimmed': 0,
-                          });
+                                'customCategories': FieldValue.arrayUnion([
+                                  trimmed,
+                                ]),
+                                'targets.$trimmed': 0,
+                              });
                         } catch (e) {
                           if (!context.mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                                content: Text(
-                                    l10n.errorSavingCategory(e.toString()))),
+                              content: Text(
+                                l10n.errorSavingCategory(e.toString()),
+                              ),
+                            ),
                           );
                         }
 
@@ -969,16 +1053,18 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
                           .collection('workspaces')
                           .doc(widget.wsId)
                           .update({
-                        'customCategories': FieldValue.arrayUnion([trimmed]),
-                        'targets.$trimmed': 0,
-                      });
+                            'customCategories': FieldValue.arrayUnion([
+                              trimmed,
+                            ]),
+                            'targets.$trimmed': 0,
+                          });
                       newCatCtrl.clear();
                     }
 
                     final count = int.tryParse(inst.text) ?? 1;
                     final total = double.tryParse(amt.text) ?? 0;
-                    final gId =
-                        DateTime.now().millisecondsSinceEpoch.toString();
+                    final gId = DateTime.now().millisecondsSinceEpoch
+                        .toString();
                     for (var i = 0; i < count; i++) {
                       final d = DateTime.now();
                       await FirebaseFirestore.instance
@@ -986,15 +1072,16 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
                           .doc(widget.wsId)
                           .collection('transactions')
                           .add({
-                        'title': count > 1
-                            ? '${title.text} (${i + 1}/$count)'
-                            : title.text,
-                        'amount': total / count,
-                        'isExpense': isExp,
-                        'category': cat,
-                        'date': DateTime(d.year, d.month + i, d.day),
-                        'groupId': gId,
-                      });
+                            'title': count > 1
+                                ? '${title.text} (${i + 1}/$count)'
+                                : title.text,
+                            'amount': total / count,
+                            'isExpense': isExp,
+                            'isBusiness': isBiz,
+                            'category': cat,
+                            'date': DateTime(d.year, d.month + i, d.day),
+                            'groupId': gId,
+                          });
                     }
                     if (ctx.mounted) Navigator.pop(ctx);
                   },

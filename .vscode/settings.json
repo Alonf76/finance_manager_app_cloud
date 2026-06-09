@@ -2,6 +2,22 @@
     "cfs.configureWorkspace": "No",
     "C_Cpp.codeAnalysis.clangTidy.enabled": true,
     "C_Cpp.codeAnalysis.runAutomatically": true,
-    "C_Cpp.codeAnalysis.clangTidy.codeAction.showCheckCode": true
-
+    "C_Cpp.codeAnalysis.clangTidy.codeAction.showCheckCode": true,
+    "[dart]": {
+        "editor.formatOnSave": true,
+        "editor.formatOnType": true,
+        "editor.rulers": [
+            80
+        ],
+        "editor.selectionHighlight": false,
+        "editor.tabCompletion": "onlySnippets",
+        "editor.wordBasedSuggestions": "off",
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit"
+        }
+    },
+    "terminal.integrated.enableMultiLinePasteWarning": "warn",
+    "git.autofetch": true,
+    "geminicodeassist.inlineSuggestions.enableAuto": true,
+    "dart.flutterSdkPath": "C:\\src\\flutter\\"
 }
