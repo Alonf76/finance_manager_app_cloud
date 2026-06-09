@@ -1,0 +1,19 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function to check workspace membership
+    function isWorkspaceMember(workspaceId) {
+      return request.auth != null && 
+        get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.members.hasAny([request.auth.token.email]);
+    }
+
+    match /workspaces/{workspaceId} {
+      allow read, write: if request.auth != null && request.auth.token.email in resource.data.members;
+      
+      match /transactions/{transactionId} {
+        allow read, write: if isWorkspaceMember(workspaceId);
+      }
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "@@locale": "en",
+  "appTitle": "Family Biz Finance",
+  "loginTitle": "Login",
+  "registerTitle": "Register",
+  "emailHint": "Email",
+  "passwordHint": "Password",
+  "workspaceSelectionTitle": "Select Workspace",
+  "ledgerTitle": "Ledger"
+}

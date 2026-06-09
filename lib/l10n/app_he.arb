@@ -1,0 +1,10 @@
+{
+  "@@locale": "he",
+  "appTitle": "כספים משפחתיים",
+  "loginTitle": "התחברות",
+  "registerTitle": "הרשמה",
+  "emailHint": "אימייל",
+  "passwordHint": "סיסמה",
+  "workspaceSelectionTitle": "בחירת מרחב עבודה",
+  "ledgerTitle": "ספר חשבונות"
+}

@@ -1,6 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/widgets.dart';
-
+import 'package:family_biz_finance/finance_app.dart'; // Import the new app root
 import 'finance_app.dart';
 import 'firebase_options.dart';
 
