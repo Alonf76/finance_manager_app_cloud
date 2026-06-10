@@ -28,4 +28,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get ledgerTitle => 'Ledger';
+
+  @override
+  String get bizTx => 'Business Transaction';
+
+  @override
+  String get bizTxHint => 'Tag this as a business expense/income';
+
+  @override
+  String get noWorkspacesFound => 'No workspaces found';
 }

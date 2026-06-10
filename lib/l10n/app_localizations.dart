@@ -139,6 +139,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Ledger'**
   String get ledgerTitle;
+
+  /// No description provided for @bizTx.
+  ///
+  /// In en, this message translates to:
+  /// **'Business Transaction'**
+  String get bizTx;
+
+  /// No description provided for @bizTxHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag this as a business expense/income'**
+  String get bizTxHint;
+
+  /// No description provided for @noWorkspacesFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No workspaces found'**
+  String get noWorkspacesFound;
 }
 
 class _AppLocalizationsDelegate

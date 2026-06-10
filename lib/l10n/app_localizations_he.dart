@@ -28,4 +28,13 @@ class AppLocalizationsHe extends AppLocalizations {
 
   @override
   String get ledgerTitle => 'ספר חשבונות';
+
+  @override
+  String get bizTx => 'עסקה עסקית';
+
+  @override
+  String get bizTxHint => 'סמן כהוצאה/הכנסה עסקית';
+
+  @override
+  String get noWorkspacesFound => 'לא נמצאו מרחבי עבודה';
 }
