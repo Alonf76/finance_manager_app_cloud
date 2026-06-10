@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart'; // Generated localization
 import 'package:family_biz_finance/auth_wrapper.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart'; // Generated localization
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 class FinanceRoot extends StatelessWidget {
   const FinanceRoot({super.key});
@@ -11,7 +11,7 @@ class FinanceRoot extends StatelessWidget {
     return MaterialApp(
       title: 'Family Biz Finance', // This will be replaced by l10n.appTitle
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        primarySwatch: Colors.teal,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       // Localization setup
