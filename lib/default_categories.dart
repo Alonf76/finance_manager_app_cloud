@@ -1,4 +1,14 @@
+import 'package:flutter/material.dart';
 import 'package:family_biz_finance/l10n/app_localizations.dart';
+
+IconData categoryIcon(String category, AppLocalizations l10n) {
+  if (category == l10n.catGroceries) return Icons.shopping_cart_outlined;
+  if (category == l10n.catHousing) return Icons.home_outlined;
+  if (category == l10n.catCar) return Icons.directions_car_outlined;
+  if (category == l10n.catHealth) return Icons.favorite_outline;
+  if (category == l10n.catLeisure) return Icons.star_outline_rounded;
+  return Icons.more_horiz_rounded;
+}
 
 List<String> defaultWorkspaceCategories(AppLocalizations l10n) => [
       l10n.catGroceries,

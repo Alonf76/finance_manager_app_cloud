@@ -53,17 +53,23 @@ class WorkspaceMembership {
     required List<String> defaultCategories,
   }) async {
     final email = user.email;
-    await FirebaseFirestore.instance.collection('workspaces').add({
+    final inviteCode = generateInviteCode();
+    final ref = FirebaseFirestore.instance.collection('workspaces').doc();
+    await ref.set({
       'name': name,
       if (email != null) 'members': [email],
       'memberIds': [user.uid],
       'memberRoles': {user.uid: 'admin'},
-      'inviteCode': generateInviteCode(),
+      'inviteCode': inviteCode,
       'pendingInviteEmails': <String>[],
       'billingDay': 10,
       'customCategories': defaultCategories,
       'targets': <String, dynamic>{},
     });
+    await FirebaseFirestore.instance
+        .collection('inviteCodes')
+        .doc(inviteCode)
+        .set({'workspaceId': ref.id});
   }
 
   static Future<void> inviteByEmail({
@@ -85,30 +91,10 @@ class WorkspaceMembership {
     if (email == null) return;
 
     final ref = FirebaseFirestore.instance.collection('workspaces').doc(workspaceId);
-    await FirebaseFirestore.instance.runTransaction((tx) async {
-      final snap = await tx.get(ref);
-      if (!snap.exists) return;
-      final data = snap.data()!;
-      final pending = List<String>.from((data['pendingInviteEmails'] as List?) ?? const []);
-      if (!pending.contains(email)) return;
-
-      final memberIds = List<String>.from((data['memberIds'] as List?) ?? const []);
-      if (!memberIds.contains(user.uid)) {
-        memberIds.add(user.uid);
-      }
-
-      final roles = Map<String, dynamic>.from(
-        (data['memberRoles'] as Map?)?.cast<String, dynamic>() ?? const {},
-      );
-      roles.putIfAbsent(user.uid, () => 'editor');
-
-      pending.remove(email);
-
-      tx.update(ref, {
-        'memberIds': memberIds,
-        'memberRoles': roles,
-        'pendingInviteEmails': pending,
-      });
+    await ref.update({
+      'memberIds': FieldValue.arrayUnion([user.uid]),
+      'memberRoles.${user.uid}': 'editor',
+      'pendingInviteEmails': FieldValue.arrayRemove([email]),
     });
   }
 
@@ -129,28 +115,16 @@ class WorkspaceMembership {
     final trimmed = code.trim().toUpperCase();
     if (trimmed.isEmpty) return null;
 
-    final q = await FirebaseFirestore.instance
-        .collection('workspaces')
-        .where('inviteCode', isEqualTo: trimmed)
-        .limit(1)
-        .get();
-    if (q.docs.isEmpty) return null;
+    final lookup =
+        await FirebaseFirestore.instance.collection('inviteCodes').doc(trimmed).get();
+    final workspaceId = lookup.data()?['workspaceId'] as String?;
+    if (workspaceId == null) return null;
 
-    final doc = q.docs.first;
-    final data = doc.data();
-    final memberIds = List<String>.from((data['memberIds'] as List?) ?? const []);
-    if (memberIds.contains(user.uid)) return doc.id;
-
-    memberIds.add(user.uid);
-    final roles = Map<String, dynamic>.from(
-      (data['memberRoles'] as Map?)?.cast<String, dynamic>() ?? const {},
-    );
-    roles.putIfAbsent(user.uid, () => 'editor');
-
-    await doc.reference.update({
-      'memberIds': memberIds,
-      'memberRoles': roles,
+    final ref = FirebaseFirestore.instance.collection('workspaces').doc(workspaceId);
+    await ref.update({
+      'memberIds': FieldValue.arrayUnion([user.uid]),
+      'memberRoles.${user.uid}': 'editor',
     });
-    return doc.id;
+    return workspaceId;
   }
 }

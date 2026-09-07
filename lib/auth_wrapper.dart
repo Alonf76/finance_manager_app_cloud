@@ -1,5 +1,5 @@
 import 'package:family_biz_finance/screens/login_screen.dart';
-import 'package:family_biz_finance/workspace_selection_screen.dart';
+import 'package:family_biz_finance/screens/workspace_selector.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -20,7 +20,7 @@ class AuthWrapper extends StatelessWidget {
         }
         if (snapshot.hasData) {
           // User is signed in, navigate to workspace selection
-          return const WorkspaceSelectionScreen();
+          return const WorkspaceSelector();
         } else {
           // User is signed out, navigate to login
           return const LoginScreen();

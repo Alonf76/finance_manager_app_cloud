@@ -9,5 +9,141 @@
   "ledgerTitle": "Ledger",
   "bizTx": "Business Transaction",
   "bizTxHint": "Tag this as a business expense/income",
-  "noWorkspacesFound": "No workspaces found"
+  "noWorkspacesFound": "No workspaces found",
+
+  "signIn": "Sign in",
+  "signUp": "Sign up",
+  "loginSubtitle": "Track your family's money, together — expenses, income, and the business, all in one place.",
+  "signOut": "Sign out",
+  "email": "Email",
+  "password": "Password",
+  "noAccount": "Don't have an account? Sign up",
+  "haveAccount": "Already have an account? Sign in",
+
+  "myWorkspaces": "My workspaces",
+  "workspaceName": "Workspace name",
+  "createNewFamilyWorkspace": "Create new family workspace",
+  "create": "Create",
+  "joinWorkspace": "Join workspace",
+  "join": "Join",
+  "enterInviteCode": "Enter invite code",
+  "inviteInvalid": "Invalid or expired invite code",
+  "joinSuccess": "Joined workspace successfully",
+  "noActiveWorkspaces": "You have no active workspaces yet",
+  "pendingInvitesTitle": "Pending invites",
+  "invitedToJoin": "Invited you to join",
+  "yourWorkspaces": "Your workspaces",
+  "acceptInvite": "Accept",
+  "declineInvite": "Decline",
+  "cancel": "Cancel",
+  "errorWithMessage": "Error: {error}",
+  "@errorWithMessage": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+
+  "workspaceSettings": "Workspace settings",
+  "inviteCode": "Invite code",
+  "copyInviteCode": "Copy invite code",
+  "copied": "Copied",
+  "inviteEmailHint": "Invite by email",
+  "sendInvite": "Send invite",
+  "inviteSent": "Invite sent",
+
+  "profileSettings": "Profile settings",
+  "language": "Language",
+  "languageEnglish": "English",
+  "languageHebrew": "Hebrew",
+  "timezone": "Timezone",
+  "currency": "Currency",
+
+  "tabExpenses": "Expenses",
+  "tabIncome": "Income",
+  "tabInstallments": "Installments",
+  "tabTargets": "Targets",
+  "readOnlyNotice": "You have view-only access to this workspace",
+
+  "income": "Income",
+  "expense": "Expense",
+  "description": "Description",
+  "totalAmount": "Total amount",
+  "payments": "Payments",
+  "category": "Category",
+  "newCategoryName": "New category name",
+  "enterNewCategoryName": "Enter a category name",
+  "errorSavingCategory": "Error saving category: {error}",
+  "@errorSavingCategory": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "save": "Save",
+  "update": "Update",
+  "edit": "Edit",
+  "delete": "Delete",
+  "deleteAll": "Delete all",
+  "deleteTxTitle": "Delete transaction",
+  "deleteTxConfirm": "Delete this transaction? This cannot be undone.",
+  "deleteSeriesTitle": "Delete series",
+  "deleteSeriesConfirm": "Delete all payments in this series? This cannot be undone.",
+  "installmentProgress": "{current} of {total} payments",
+  "@installmentProgress": {
+    "placeholders": {
+      "current": {},
+      "total": {}
+    }
+  },
+
+  "cycle": "Cycle: {start} – {end}",
+  "@cycle": {
+    "placeholders": {
+      "start": {},
+      "end": {}
+    }
+  },
+  "incomeTotal": "Income: {amount}",
+  "@incomeTotal": {
+    "placeholders": {
+      "amount": {}
+    }
+  },
+  "expensesTotal": "Expenses: {amount}",
+  "@expensesTotal": {
+    "placeholders": {
+      "amount": {}
+    }
+  },
+  "balance": "Balance: {amount}",
+  "@balance": {
+    "placeholders": {
+      "amount": {}
+    }
+  },
+  "remaining": "{amount} remaining",
+  "@remaining": {
+    "placeholders": {
+      "amount": {}
+    }
+  },
+  "overBudget": "Over budget by {amount}",
+  "@overBudget": {
+    "placeholders": {
+      "amount": {}
+    }
+  },
+  "spentOfTarget": "{spent} of {target}",
+  "@spentOfTarget": {
+    "placeholders": {
+      "spent": {},
+      "target": {}
+    }
+  },
+
+  "catGroceries": "Groceries",
+  "catHousing": "Housing",
+  "catCar": "Car",
+  "catHealth": "Health",
+  "catLeisure": "Leisure",
+  "catOther": "Other"
 }

@@ -1,19 +1,75 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper function to check workspace membership
-    function isWorkspaceMember(workspaceId) {
-      return request.auth != null && 
-        get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.members.hasAny([request.auth.token.email]);
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isMember(workspaceData) {
+      return isSignedIn() && request.auth.uid in workspaceData.get('memberIds', []);
+    }
+
+    function isInvitedByEmail(workspaceData) {
+      return isSignedIn() &&
+        workspaceData.get('pendingInviteEmails', []).hasAny([request.auth.token.email]);
+    }
+
+    function isLegacyMemberByEmail(workspaceData) {
+      return isSignedIn() &&
+        workspaceData.get('members', []).hasAny([request.auth.token.email]);
+    }
+
+    function isAdmin(workspaceData) {
+      return isMember(workspaceData) &&
+        workspaceData.get('memberRoles', {}).get(request.auth.uid, '') == 'admin';
     }
 
     match /workspaces/{workspaceId} {
-      allow read, write: if request.auth != null && request.auth.token.email in resource.data.members;
-      
+      // Reads cover: listing your own workspaces (memberIds), the one-time
+      // legacy-membership migration (members/email), and pending invites
+      // addressed to you (pendingInviteEmails) — the three query shapes the
+      // app actually runs against this collection.
+      allow read: if isMember(resource.data)
+        || isLegacyMemberByEmail(resource.data)
+        || isInvitedByEmail(resource.data);
+
+      allow create: if isSignedIn() && request.auth.uid in request.resource.data.memberIds;
+
+      // Update covers normal member activity (categories, targets, invites)
+      // plus "self-join" writes: accepting an invite or redeeming an invite
+      // code both add the caller to memberIds/memberRoles before they are a
+      // member, so the check also passes if the caller is a member *after*
+      // the write, so long as no existing member is removed in the process.
+      allow update: if isMember(resource.data) || (
+        isMember(request.resource.data) &&
+        request.resource.data.get('memberIds', [])
+          .hasAll(resource.data.get('memberIds', []))
+      ) || (
+        // Declining an invite: only pendingInviteEmails may change.
+        isInvitedByEmail(resource.data) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pendingInviteEmails'])
+      );
+
+      allow delete: if isAdmin(resource.data);
+
       match /transactions/{transactionId} {
-        allow read, write: if isWorkspaceMember(workspaceId);
+        allow read, write: if isMember(
+          get(/databases/$(database)/documents/workspaces/$(workspaceId)).data);
       }
+    }
+
+    // Maps a short invite code to its workspace so a not-yet-member can
+    // resolve a code without being able to read the workspace's data.
+    match /inviteCodes/{code} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.keys().hasOnly(['workspaceId'])
+        && request.resource.data.workspaceId is string;
+      allow update, delete: if false;
+    }
+
+    match /users/{uid} {
+      allow read, write: if isSignedIn() && request.auth.uid == uid;
     }
   }
 }
