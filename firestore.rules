@@ -6,22 +6,31 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // Every helper type-guards its field before calling list/map methods on
+    // it, so a malformed value on an old document (e.g. left over from early
+    // testing) fails closed on that one check instead of erroring the rule
+    // evaluation and denying the whole request.
     function isMember(workspaceData) {
-      return isSignedIn() && request.auth.uid in workspaceData.get('memberIds', []);
+      return isSignedIn() &&
+        workspaceData.get('memberIds', []) is list &&
+        request.auth.uid in workspaceData.get('memberIds', []);
     }
 
     function isInvitedByEmail(workspaceData) {
       return isSignedIn() &&
+        workspaceData.get('pendingInviteEmails', []) is list &&
         workspaceData.get('pendingInviteEmails', []).hasAny([request.auth.token.email]);
     }
 
     function isLegacyMemberByEmail(workspaceData) {
       return isSignedIn() &&
+        workspaceData.get('members', []) is list &&
         workspaceData.get('members', []).hasAny([request.auth.token.email]);
     }
 
     function isAdmin(workspaceData) {
       return isMember(workspaceData) &&
+        workspaceData.get('memberRoles', {}) is map &&
         workspaceData.get('memberRoles', {}).get(request.auth.uid, '') == 'admin';
     }
 
