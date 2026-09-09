@@ -6,39 +6,35 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Every helper type-guards its field before calling list/map methods on
-    // it, so a malformed value on an old document (e.g. left over from early
-    // testing) fails closed on that one check instead of erroring the rule
-    // evaluation and denying the whole request.
+    // IMPORTANT: these use direct field access (workspaceData.field), never
+    // resource.data.get(field, default). Firestore's list-query provability
+    // checker cannot validate a query against a rule that uses .get() with a
+    // default - it silently denies the entire query even when the query's
+    // own filter guarantees the condition, and even with no other
+    // conditions combined. Confirmed by direct testing against the live
+    // project. Every workspace document is always written with all of
+    // memberIds/members/memberRoles/pendingInviteEmails present together
+    // (see WorkspaceMembership.createWorkspace), so direct access is safe.
     function isMember(workspaceData) {
-      return isSignedIn() &&
-        workspaceData.get('memberIds', []) is list &&
-        request.auth.uid in workspaceData.get('memberIds', []);
+      return isSignedIn() && request.auth.uid in workspaceData.memberIds;
     }
 
     function isInvitedByEmail(workspaceData) {
       return isSignedIn() &&
-        workspaceData.get('pendingInviteEmails', []) is list &&
-        workspaceData.get('pendingInviteEmails', []).hasAny([request.auth.token.email]);
+        request.auth.token.email in workspaceData.pendingInviteEmails;
     }
 
     function isLegacyMemberByEmail(workspaceData) {
       return isSignedIn() &&
-        workspaceData.get('members', []) is list &&
-        workspaceData.get('members', []).hasAny([request.auth.token.email]);
+        request.auth.token.email in workspaceData.members;
     }
 
     function isAdmin(workspaceData) {
       return isMember(workspaceData) &&
-        workspaceData.get('memberRoles', {}) is map &&
-        workspaceData.get('memberRoles', {}).get(request.auth.uid, '') == 'admin';
+        workspaceData.memberRoles[request.auth.uid] == 'admin';
     }
 
     match /workspaces/{workspaceId} {
-      // Reads cover: listing your own workspaces (memberIds), the one-time
-      // legacy-membership migration (members/email), and pending invites
-      // addressed to you (pendingInviteEmails) — the three query shapes the
-      // app actually runs against this collection.
       allow read: if isMember(resource.data)
         || isLegacyMemberByEmail(resource.data)
         || isInvitedByEmail(resource.data);
@@ -52,8 +48,7 @@ service cloud.firestore {
       // the write, so long as no existing member is removed in the process.
       allow update: if isMember(resource.data) || (
         isMember(request.resource.data) &&
-        request.resource.data.get('memberIds', [])
-          .hasAll(resource.data.get('memberIds', []))
+        request.resource.data.memberIds.hasAll(resource.data.memberIds)
       ) || (
         // Declining an invite: only pendingInviteEmails may change.
         isInvitedByEmail(resource.data) &&
