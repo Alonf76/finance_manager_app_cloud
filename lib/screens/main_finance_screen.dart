@@ -9,6 +9,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import '../app_formatters.dart';
 import '../default_categories.dart';
+import '../shared_receipt.dart';
 import '../user_profile_repository.dart';
 import '../widgets/app_version_display.dart';
 import '../workspace_membership.dart';
@@ -31,6 +32,7 @@ class MainFinanceScreen extends StatefulWidget {
 class _MainFinanceScreenState extends State<MainFinanceScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  SharedReceiptData? _pendingShared;
 
   @override
   void initState() {
@@ -45,6 +47,14 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
           primaryColor: Colors.teal.value,
         ),
       );
+    });
+
+    // Picks up a bill/receipt shared into the installed web app from
+    // another app (Photos, Gmail, WhatsApp, ...) via the share sheet.
+    consumePendingSharedReceipt().then((shared) {
+      if (shared != null && mounted) {
+        setState(() => _pendingShared = shared);
+      }
     });
   }
 
@@ -204,6 +214,14 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
               final raw = wsSnap.data!.get('targets');
               if (raw is Map) targets = Map<String, dynamic>.from(raw);
             } catch (_) {}
+
+            if (_pendingShared != null && role.canEditLedger) {
+              final shared = _pendingShared!;
+              _pendingShared = null;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) _showAdd(context, cats, l10n, shared: shared);
+              });
+            }
 
             return Scaffold(
               appBar: AppBar(
@@ -930,10 +948,14 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
   void _showAdd(
     BuildContext context,
     List<String> cats,
-    AppLocalizations l10n,
-  ) {
+    AppLocalizations l10n, {
+    SharedReceiptData? shared,
+  }) {
     final workingCats = List<String>.from(cats);
-    final title = TextEditingController();
+    final sharedDescription = shared == null
+        ? ''
+        : (shared.text.isNotEmpty ? shared.text : shared.title);
+    final title = TextEditingController(text: sharedDescription);
     final amt = TextEditingController();
     final inst = TextEditingController(text: '1');
     final newCatCtrl = TextEditingController();
@@ -962,6 +984,7 @@ class _MainFinanceScreenState extends State<MainFinanceScreen>
           amountCtrl: amt,
           installmentsCtrl: inst,
           newCatCtrl: newCatCtrl,
+          receiptImageBytes: shared?.bytes,
           onToggleExpense: (v) => setS(() => isExp = v),
           onToggleBusiness: (v) => setS(() => isBiz = v),
           onSelectCategory: (v) => setS(() => cat = v),
@@ -1112,6 +1135,7 @@ class _TransactionSheet extends StatelessWidget {
     required this.amountCtrl,
     required this.installmentsCtrl,
     required this.newCatCtrl,
+    this.receiptImageBytes,
     required this.onToggleExpense,
     required this.onToggleBusiness,
     required this.onSelectCategory,
@@ -1131,6 +1155,7 @@ class _TransactionSheet extends StatelessWidget {
   final TextEditingController amountCtrl;
   final TextEditingController installmentsCtrl;
   final TextEditingController newCatCtrl;
+  final Uint8List? receiptImageBytes;
   final ValueChanged<bool> onToggleExpense;
   final ValueChanged<bool> onToggleBusiness;
   final ValueChanged<String> onSelectCategory;
@@ -1175,6 +1200,18 @@ class _TransactionSheet extends StatelessWidget {
                 ),
               ],
             ),
+            if (receiptImageBytes != null) ...[
+              const SizedBox(height: 10),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.memory(
+                  receiptImageBytes!,
+                  height: 160,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ],
             const SizedBox(height: 10),
             Container(
               padding: const EdgeInsets.all(4),

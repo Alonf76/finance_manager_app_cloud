@@ -38,6 +38,18 @@
     This is useful to provide a custom configuration to the Flutter loader
     or to give the user feedback during the initialization process.
   -->
+  <script src="share_bridge.js"></script>
   <script src="flutter_bootstrap.js" async></script>
+
+  <!--
+    Registers the dedicated share-target service worker (web/share-target/sw.js),
+    scoped only to /share-target/ - independent of Flutter's own service worker
+    (scoped to /) so it can't interfere with the app-shell caching/update logic.
+  -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/share-target/sw.js', { scope: '/share-target/' });
+    }
+  </script>
 </body>
 </html>
